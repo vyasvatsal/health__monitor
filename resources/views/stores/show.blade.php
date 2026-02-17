@@ -62,21 +62,7 @@
                     </button>
                 </div>
 
-                <!-- Quick Logic -->
-                <div
-                    class="bg-[#1e293b] rounded-xl border border-white/10 p-5 flex items-center justify-between group cursor-pointer hover:border-emerald-500/30 transition-colors">
-                    <div>
-                        <p class="text-slate-400 text-xs uppercase font-bold tracking-wider">Integration</p>
-                        <h3 class="text-sm font-bold text-white mt-1 group-hover:text-emerald-400">View Setup Guide
-                            &rarr;</h3>
-                    </div>
-                    <div class="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-400">
-                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-                        </svg>
-                    </div>
-                </div>
+                <!-- Quick Logic Removed (API-Only Mode) -->
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">

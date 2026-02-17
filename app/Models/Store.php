@@ -25,4 +25,9 @@ class Store extends Model
     {
         return $this->hasMany(Incident::class);
     }
+
+    public function errorGroups()
+    {
+        return $this->hasMany(ErrorGroup::class);
+    }
 }

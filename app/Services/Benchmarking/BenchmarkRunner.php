@@ -47,6 +47,10 @@ class BenchmarkRunner
             'my_size_kb' => $myStats['size'],
             'competitor_size_kb' => $compStats['size'],
             'winner' => $winner,
+            'details' => json_encode([
+                'my_assets' => $myStats['assets'],
+                'comp_assets' => $compStats['assets']
+            ]),
         ]);
 
         $competitor->update(['last_audit_at' => now()]);
@@ -61,14 +65,26 @@ class BenchmarkRunner
             $response = Http::timeout(10)->get($url);
             $duration = (microtime(true) - $start) * 1000; // ms
 
+            $body = $response->body();
+            $sizeKb = round(strlen($body) / 1024);
+
+            // Asset Analysis (Simple Regex Count)
+            $scriptCount = preg_match_all('/<script/i', $body);
+            $imgCount = preg_match_all('/<img/i', $body);
+
             return [
                 'ttfb' => round($duration),
-                'size' => round(strlen($response->body()) / 1024), // kb
+                'size' => $sizeKb,
+                'assets' => [
+                    'scripts' => $scriptCount,
+                    'images' => $imgCount
+                ]
             ];
         } catch (\Exception $e) {
             return [
                 'ttfb' => 9999, // penalty
                 'size' => 0,
+                'assets' => ['scripts' => 0, 'images' => 0]
             ];
         }
     }

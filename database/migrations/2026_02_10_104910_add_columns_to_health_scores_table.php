@@ -11,7 +11,7 @@ return new class extends Migration {
     public function up(): void
     {
         Schema::table('health_scores', function (Blueprint $table) {
-            $table->decimal('score', 5, 2)->after('id');
+            // $table->decimal('score', 5, 2)->after('id'); // Defined in create_health_scores_table
             $table->json('metrics_json')->nullable()->after('score');
             $table->string('trend')->default('stable')->after('metrics_json'); // 'up', 'down', 'stable'
         });
@@ -23,7 +23,7 @@ return new class extends Migration {
     public function down(): void
     {
         Schema::table('health_scores', function (Blueprint $table) {
-            $table->dropColumn(['score', 'metrics_json', 'trend']);
+            $table->dropColumn(['metrics_json', 'trend']);
         });
     }
 };

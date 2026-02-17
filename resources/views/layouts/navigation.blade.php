@@ -24,6 +24,9 @@
                     <x-nav-link :href="route('incidents.index')" :active="request()->routeIs('incidents.*')">
                         {{ __('Incidents') }}
                     </x-nav-link>
+                    <x-nav-link :href="route('monitor.errors')" :active="request()->routeIs('monitor.errors')">
+                        {{ __('Errors') }}
+                    </x-nav-link>
                 </div>
             </div>
 

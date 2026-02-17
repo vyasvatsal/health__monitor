@@ -74,6 +74,9 @@ class GeminiService
         **Detected Issues:**
         " . (empty($data['issues']) ? "No critical technical issues detected." : implode(", ", $data['issues'])) . "
 
+        **Recent System Alerts (Context):**
+        " . (empty($data['recent_alerts']) ? "No recent alerts." : implode(", ", $data['recent_alerts'])) . "
+
         **Analysis Request:**
         1. **Executive Summary**: One sentence on the current state (e.g., 'Leaking revenue due to latency' or 'Prime for growth').
         2. **3 High-Impact Fixes**: Concrete actions to take IMMEDIATELY. If performance is low, suggest specific Laravel optimizations (e.g., 'Cache routes', 'Optimize queries').

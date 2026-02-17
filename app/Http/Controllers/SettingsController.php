@@ -14,10 +14,20 @@ class SettingsController extends Controller
     public function update(Request $request)
     {
         $request->validate([
-            'google_api_key' => 'required|string',
+            'gemini_api_key_chatbot' => 'nullable|string',
+            'monthly_revenue' => 'nullable|numeric',
+            'slack_webhook_url' => 'nullable|url',
         ]);
 
-        $this->updateEnv(['GOOGLE_API_KEY' => $request->google_api_key]);
+        $data = [];
+        if ($request->has('gemini_api_key_chatbot'))
+            $data['GEMINI_API_KEY_CHATBOT'] = $request->gemini_api_key_chatbot;
+        if ($request->has('monthly_revenue'))
+            $data['MONTHLY_REVENUE'] = $request->monthly_revenue;
+        if ($request->has('slack_webhook_url'))
+            $data['SLACK_WEBHOOK_URL'] = $request->slack_webhook_url;
+
+        $this->updateEnv($data);
 
         return back()->with('success', 'Settings updated successfully.');
     }

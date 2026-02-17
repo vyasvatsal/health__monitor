@@ -81,4 +81,15 @@ class StoreController extends Controller
 
         return redirect()->route('stores.show', $store)->with('success', 'Project updated successfully.');
     }
+
+    public function destroy(Store $store)
+    {
+        if ($store->user_id !== auth()->id()) {
+            abort(403);
+        }
+
+        $store->delete();
+
+        return redirect()->route('stores.index')->with('success', 'Project deleted successfully.');
+    }
 }

@@ -447,6 +447,31 @@
         </footer>
 
     </main>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            fetch('/api/v1/monitor/1/capture', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    message: 'Console connection test',
+                    fingerprint: 'console-test'
+                })
+            })
+                .then(response => {
+                    if (response.ok) {
+                        console.log('no errors are found using api correct');
+                    } else {
+                        console.error('api fetched then error appear if any has been there', response.status);
+                    }
+                })
+                .catch(error => {
+                    console.error('api fetched then error appear if any has been there', error);
+                });
+        });
+    </script>
 </body>
 
 </html>

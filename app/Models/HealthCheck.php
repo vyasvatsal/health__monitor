@@ -26,6 +26,11 @@ class HealthCheck extends Model
         return $this->hasMany(CheckResult::class);
     }
 
+    public function checkResults()
+    {
+        return $this->hasMany(CheckResult::class, 'health_check_id');
+    }
+
     public function latestResult()
     {
         return $this->hasOne(CheckResult::class)->latestOfMany();

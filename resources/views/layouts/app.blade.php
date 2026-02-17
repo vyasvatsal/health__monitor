@@ -165,6 +165,7 @@
                         ['url' => route('stores.index'), 'icon' => 'inventory_2', 'label' => 'Projects', 'route' => 'stores*'],
                         ['url' => route('benchmarks.index'), 'icon' => 'analytics', 'label' => 'Benchmarks', 'route' => 'benchmarks*'],
                         ['url' => route('incidents.index'), 'icon' => 'warning', 'label' => 'Incidents', 'route' => 'incidents*'],
+                        ['url' => route('monitor.errors'), 'icon' => 'bug_report', 'label' => 'Error Detection', 'route' => 'monitor.errors*'],
                     ] as $item)
                     <a href="{{ $item['url'] }}" 
                        class="sidebar-link group {{ request()->is($item['route']) || request()->routeIs($item['route']) ? 'active' : '' }}"
@@ -237,11 +238,28 @@
                         <i class="material-icons" x-text="!isDesktop || sidebarCollapsed ? 'menu' : 'menu_open'"></i>
                     </button>
                     
-                    <!-- Dynamic Breadcrumbs / Title Placeholder -->
-                    <div class="hidden sm:block text-sm text-slate-400" id="header-title">
-                        @if(request()->routeIs('dashboard')) <span class="text-emerald-400 font-medium">Dashboard</span>
-                        @else <span class="text-slate-200">{{ $header ?? '' }}</span> @endif
-                    </div>
+<!-- Dynamic Breadcrumbs -->
+                    <nav class="hidden sm:flex items-center text-sm font-medium">
+                        <a href="{{ route('dashboard') }}" class="text-slate-400 hover:text-white transition-colors">Home</a>
+                        
+                        @if(isset($breadcrumbs))
+                            @foreach($breadcrumbs as $label => $url)
+                                <svg class="w-4 h-4 text-slate-600 mx-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                </svg>
+                                @if($url && !$loop->last)
+                                    <a href="{{ $url }}" class="text-slate-400 hover:text-white transition-colors">{{ $label }}</a>
+                                @else
+                                    <span class="text-emerald-400 font-medium">{{ $label }}</span>
+                                @endif
+                            @endforeach
+                        @elseif(isset($header))
+                             <svg class="w-4 h-4 text-slate-600 mx-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                            </svg>
+                            <span class="text-emerald-400 font-medium">{{ $header }}</span>
+                        @endif
+                    </nav>
                 </div>
                 
                 <div class="flex items-center gap-4">
@@ -349,5 +367,6 @@
             window.addEventListener('popstate', () => location.reload());
         });
     </script>
+
 </body>
 </html>

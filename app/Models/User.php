@@ -56,4 +56,12 @@ class User extends Authenticatable
     {
         return $this->tier === 'pro';
     }
+
+    /**
+     * Get the stores (projects) owned by the user.
+     */
+    public function stores()
+    {
+        return $this->hasMany(Store::class);
+    }
 }

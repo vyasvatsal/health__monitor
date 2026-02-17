@@ -35,8 +35,8 @@ return [
         ],
     ],
 
-    'google' => [
-        'api_key' => env('GOOGLE_API_KEY'),
+    'xai' => [
+        'key' => env('GEMINI_API_KEY_CHATBOT'),
     ],
 
 ];

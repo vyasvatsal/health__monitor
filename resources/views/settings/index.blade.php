@@ -29,17 +29,45 @@
                     <form method="POST" action="{{ route('settings.update') }}">
                         @csrf
                         <div class="mb-6">
-                            <label for="google_api_key" class="block text-sm font-medium text-slate-300 mb-2">Google
-                                Gemini API Key</label>
+                            <label for="gemini_api_key_chatbot"
+                                class="block text-sm font-medium text-slate-300 mb-2">xAI (Grok) API Key</label>
                             <div class="flex gap-2">
-                                <input id="google_api_key" type="password" name="google_api_key"
-                                    value="{{ old('google_api_key', config('services.google.api_key')) }}"
+                                <input id="gemini_api_key_chatbot" type="password" name="gemini_api_key_chatbot"
+                                    value="{{ old('gemini_api_key_chatbot', config('services.xai.key')) }}"
                                     class="block w-full rounded-lg bg-[#0f172a] border-slate-700 text-white focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm p-2.5"
-                                    placeholder="AIzaSy...">
+                                    placeholder="gsk_...">
                             </div>
                             <p class="mt-2 text-xs text-slate-500">
-                                Get your API key from <a href="https://aistudio.google.com/" target="_blank"
-                                    class="text-emerald-400 hover:underline">Google AI Studio</a>.
+                                Get your API key from <a href="https://console.x.ai/" target="_blank"
+                                    class="text-emerald-400 hover:underline">xAI Console</a>.
+                            </p>
+                        </div>
+
+                        <div class="mb-6">
+                            <label for="monthly_revenue" class="block text-sm font-medium text-slate-300 mb-2">Monthly
+                                Revenue (USD)</label>
+                            <div class="flex gap-2">
+                                <input id="monthly_revenue" type="number" name="monthly_revenue"
+                                    value="{{ old('monthly_revenue', env('MONTHLY_REVENUE', 50000)) }}"
+                                    class="block w-full rounded-lg bg-[#0f172a] border-slate-700 text-white focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm p-2.5"
+                                    placeholder="50000">
+                            </div>
+                            <p class="mt-2 text-xs text-slate-500">
+                                Used to calculate predictive revenue loss.
+                            </p>
+                        </div>
+
+                        <div class="mb-6">
+                            <label for="slack_webhook_url" class="block text-sm font-medium text-slate-300 mb-2">Slack
+                                Webhook URL</label>
+                            <div class="flex gap-2">
+                                <input id="slack_webhook_url" type="url" name="slack_webhook_url"
+                                    value="{{ old('slack_webhook_url', env('SLACK_WEBHOOK_URL')) }}"
+                                    class="block w-full rounded-lg bg-[#0f172a] border-slate-700 text-white focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm p-2.5"
+                                    placeholder="https://hooks.slack.com/services/...">
+                            </div>
+                            <p class="mt-2 text-xs text-slate-500">
+                                Receive critical alerts and daily digests in your Slack channel.
                             </p>
                         </div>
 

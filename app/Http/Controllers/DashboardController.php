@@ -12,14 +12,22 @@ use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $user = auth()->user();
         if (!$user)
             return redirect('login');
 
-        // For MVP, we just grab the first store owned by the user
-        $store = Store::where('user_id', $user->id)->first();
+        // Fetch all stores for the switcher
+        $allStores = Store::where('user_id', $user->id)->get();
+
+        // Determine current store
+        $storeId = $request->query('store_id');
+        if ($storeId) {
+            $store = $allStores->where('id', $storeId)->first();
+        } else {
+            $store = $allStores->first();
+        }
 
         // If no store exists (new user), show empty state or redirect to setup
         // For now, we assume the seeder ran or we handle null gracefully
@@ -30,8 +38,16 @@ class DashboardController extends Controller
                 'errorRate' => 0,
                 'activeNodes' => 0,
                 'components' => [],
-                'recentAlerts' => [],
+                'recentAlerts' => collect([]),
                 'chartData' => [],
+                'allStores' => $allStores,
+                'currentStore' => null,
+                'healthScore' => null,
+                'revenueLoss' => ['loss_amount' => 0, 'loss_percentage' => 0, 'is_optimal' => true],
+                'slowestRoute' => null,
+                'securityResult' => ['score' => 100, 'status' => 'Secure', 'issues' => []],
+                'uptime30d' => 100,
+                'activeUsers' => 0,
             ]);
         }
 
@@ -55,6 +71,8 @@ class DashboardController extends Controller
             : 0;
 
         $activeNodes = HealthCheck::where('store_id', $store->id)->where('is_active', true)->count();
+
+        // ... (existing stats logic) ...
 
         // 2. Component Status (Latest result for each check)
         $components = HealthCheck::where('store_id', $store->id)
@@ -99,20 +117,50 @@ class DashboardController extends Controller
 
         // 6. Revenue Loss Projection (Module 3)
         $revenueService = new \App\Services\Analytics\RevenueLossCalculator();
-        // Assuming $50,000 monthly revenue for MVP/Demo
-        $revenueLoss = $revenueService->calculate($avgLatency, 50000);
+        $monthlyRevenue = env('MONTHLY_REVENUE', 50000);
+        $revenueLoss = $revenueService->calculate($avgLatency, $monthlyRevenue);
+
+        // 7. Slowest Route (Module 4 - Phase 2)
+        $slowestRoute = \Illuminate\Support\Facades\Cache::get('performance_slowest_route');
+
+        // 8. Security & Logs (Phase 4)
+        $securityScanner = new \App\Services\Security\SecurityScanner();
+        $securityResult = $securityScanner->scan();
+
+        // 9. Uptime & History (Phase 5)
+        // 30-Day Uptime Calculation
+        $totalChecks30d = \App\Models\CheckResult::where('created_at', '>=', now()->subDays(30))->count();
+        $failedChecks30d = \App\Models\CheckResult::where('created_at', '>=', now()->subDays(30))
+            ->where('status', '!=', 'ok')->count();
+        $uptime30d = $totalChecks30d > 0 ? (1 - ($failedChecks30d / $totalChecks30d)) * 100 : 100;
+
+        // 7-Day History calculation removed as it conflicts with the hourly chart view logic
+        // The view expects $normalizedChart to contain hourly data from lines 98-108
+
+        // 10. Live Traffic (Active Users) - added for SaaS
+        $latestActiveUserCheck = CheckResult::whereHas('check', fn($q) => $q->where('store_id', $store->id))
+            ->whereNotNull('payload->active_users')
+            ->orderBy('created_at', 'desc')
+            ->first();
+
+        $activeUsers = $latestActiveUserCheck ? ($latestActiveUserCheck->payload['active_users'] ?? 0) : 0;
 
         return view('dashboard', [
             'totalRequests' => number_format($totalRequests),
             'avgLatency' => $avgLatency,
             'errorRate' => $errorRate,
             'activeNodes' => $activeNodes,
+            'activeUsers' => $activeUsers, // New Variable
             'components' => $components,
             'recentAlerts' => $recentAlerts,
             'healthScore' => $healthScore,
-            'chartData' => $normalizedChart,
+            'chartData' => $normalizedChart, // Now using real history
             'revenueLoss' => $revenueLoss,
-
+            'slowestRoute' => $slowestRoute,
+            'securityResult' => $securityResult,
+            'uptime30d' => round($uptime30d, 2),
+            'allStores' => $allStores,
+            'currentStore' => $store,
         ]);
     }
 }

@@ -34,4 +34,10 @@ class AlertSettingsController extends Controller
 
         return redirect()->back()->with('success', 'Alert preferences updated.');
     }
+
+    public function test(\App\Services\Alerts\AlertService $alertService)
+    {
+        $alertService->sendCritical("This is a TEST critical alert triggered by the user.");
+        return back()->with('success', 'Test alert sent to configured channels.');
+    }
 }

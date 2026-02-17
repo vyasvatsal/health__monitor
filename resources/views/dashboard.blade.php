@@ -4,15 +4,74 @@
     <div class="py-6 flex-1 flex flex-col">
         <div class="w-full px-4 sm:px-6 lg:px-8 flex-1 flex flex-col">
             <div class="flex justify-between items-center mb-5">
-                <h1 class="text-xl font-bold text-white">Dashboard</h1>
-                <button onclick="analyzeStoreHealth()"
-                    class="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-sm font-bold rounded-lg shadow-lg shadow-purple-500/20 flex items-center gap-2 transition-all hover:scale-105">
-                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M13 10V3L4 14h7v7l9-11h-7z" />
-                    </svg>
-                    Analyze with AI
-                </button>
+                <div class="flex items-center gap-4">
+                    <!-- Project Switcher -->
+                    <div class="relative group">
+                        <button
+                            class="flex items-center gap-2 text-xl font-bold text-white hover:text-slate-200 transition-colors">
+                            {{ optional($currentStore)->name ?? 'Dashboard' }}
+                            <svg class="w-5 h-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </button>
+                        <!-- Dropdown -->
+                        <div
+                            class="absolute left-0 mt-2 w-56 bg-[#1e293b] border border-slate-700 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                            <div class="py-1">
+                                @foreach($allStores as $s)
+                                    <a href="{{ route('dashboard', ['store_id' => $s->id]) }}"
+                                        class="block px-4 py-2 text-sm text-slate-300 hover:bg-slate-700 hover:text-white flex justify-between items-center">
+                                        {{ $s->name }}
+                                        @if($currentStore && $s->id === $currentStore->id)
+                                            <svg class="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24"
+                                                stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M5 13l4 4L19 7" />
+                                            </svg>
+                                        @endif
+                                    </a>
+                                @endforeach
+                                <div class="border-t border-slate-700 my-1"></div>
+                                <a href="{{ route('stores.create') }}"
+                                    class="block px-4 py-2 text-sm text-emerald-400 hover:bg-slate-700 font-medium">
+                                    + Create New Project
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <span
+                        class="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full text-xs text-emerald-400 font-mono tracking-wide">
+                        UPTIME 30D: {{ $uptime30d }}%
+                    </span>
+                </div>
+
+                <div class="flex gap-3">
+                    <a href="{{ route('status') }}" target="_blank"
+                        class="px-4 py-2 bg-[#1e293b] hover:bg-[#334155] text-white text-sm font-medium rounded-lg border border-slate-700 transition-all flex items-center gap-2">
+                        <svg class="w-4 h-4 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                        Public Status
+                    </a>
+                    <a href="{{ route('incidents.create') }}"
+                        class="px-4 py-2 bg-[#1e293b] hover:bg-[#334155] text-white text-sm font-medium rounded-lg border border-slate-700 transition-all flex items-center gap-2">
+                        <svg class="w-4 h-4 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        Report Incident
+                    </a>
+                    <button onclick="analyzeStoreHealth()"
+                        class="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-sm font-bold rounded-lg shadow-lg shadow-purple-500/20 flex items-center gap-2 transition-all hover:scale-105">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                        Analyze with AI
+                    </button>
+                </div>
             </div>
 
             <!-- AI Analysis Modal -->
@@ -66,6 +125,10 @@
                                     class="px-4 py-2 bg-white/5 hover:bg-white/10 text-white text-sm font-bold rounded-lg transition-colors">
                                     Close
                                 </button>
+                                <a href="{{ route('settings.developer') }}" target="_blank"
+                                    class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white text-sm font-bold rounded-lg transition-colors border border-slate-600">
+                                    API Key
+                                </a>
                                 <a href="{{ route('settings.index') }}"
                                     class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold rounded-lg transition-colors shadow-lg shadow-indigo-500/20">
                                     View Settings
@@ -87,7 +150,7 @@
                                     AI Health Score
                                 </div>
                                 <div class="text-2xl font-bold text-white tracking-tight">
-                                    {{ $healthScore->score ?? 0 }}<span
+                                    {{ optional($healthScore)->score ?? 0 }}<span
                                         class="text-sm text-slate-500 font-normal">/100</span>
                                 </div>
                             </div>
@@ -103,7 +166,7 @@
                         <!-- Breakdown -->
                         <div class="mt-3 grid grid-cols-2 gap-2 text-[10px]">
                             @php
-                                $metrics = json_decode($healthScore->metrics_json ?? '{}', true);
+                                $metrics = json_decode(optional($healthScore)->metrics_json ?? '{}', true);
                             @endphp
                             @foreach(['performance' => 'Perf', 'ux' => 'UX', 'conversion' => 'Conv', 'trust' => 'Trust'] as $key => $label)
                                 <div class="flex flex-col">
@@ -264,7 +327,131 @@
                     </div>
                 </div>
 
-                <!-- Optimization Opportunity (Placeholder for Module 2/6) -->
+                <!-- Slowest Route (New Phase 2) -->
+                <div
+                    class="bg-[#1e293b] overflow-hidden shadow-sm rounded-lg border border-white/10 hover:border-white/20 transition-all duration-300">
+                    <div class="p-5">
+                        <div class="flex items-center justify-between mb-4">
+                            <div>
+                                <h3 class="text-white font-bold flex items-center gap-2">
+                                    <svg class="w-5 h-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    Slowest Detected Route
+                                </h3>
+                                <p class="text-slate-400 text-xs mt-1">Slowest request in the last hour</p>
+                            </div>
+                        </div>
+
+                        @if($slowestRoute)
+                            <div class="flex items-end gap-2">
+                                <div class="text-3xl font-bold text-white tracking-tight">
+                                    {{ $slowestRoute['duration'] }}ms
+                                </div>
+                                <div class="text-sm text-slate-500 mb-1">latency</div>
+                            </div>
+                            <div class="mt-4 bg-slate-700/30 rounded p-3">
+                                <div class="flex flex-col gap-1">
+                                    <div class="flex items-center gap-2">
+                                        <span
+                                            class="px-1.5 py-0.5 rounded bg-slate-600 text-slate-300 text-[10px] font-bold uppercase">{{ $slowestRoute['method'] }}</span>
+                                        <span class="text-xs text-white truncate w-48"
+                                            title="{{ $slowestRoute['url'] }}">{{ parse_url($slowestRoute['url'], PHP_URL_PATH) }}</span>
+                                    </div>
+                                    <div class="text-[10px] text-slate-500 text-right">
+                                        {{ \Carbon\Carbon::parse($slowestRoute['timestamp'])->diffForHumans() }}
+                                    </div>
+                                </div>
+                            </div>
+                        @else
+                            <div class="text-slate-500 text-sm py-4">No slow queries detected.</div>
+                        @endif
+                    </div>
+                </div>
+
+                <!-- Test Alerts (Phase 3) -->
+                <div
+                    class="bg-[#1e293b] overflow-hidden shadow-sm rounded-lg border border-white/10 hover:border-white/20 transition-all duration-300">
+                    <div class="p-5">
+                        <div class="flex items-center justify-between mb-4">
+                            <div>
+                                <h3 class="text-white font-bold flex items-center gap-2">
+                                    <svg class="w-5 h-5 text-yellow-400" fill="none" viewBox="0 0 24 24"
+                                        stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                                    </svg>
+                                    Test Alerts
+                                </h3>
+                                <p class="text-slate-400 text-xs mt-1">Verify your notification channels</p>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 text-center">
+                            <p class="text-sm text-slate-300 mb-3">Trigger a simulated critical alert to check Slack/Email
+                                integration.</p>
+                            <form action="{{ route('settings.alerts.test') }}" method="POST">
+                                @csrf
+                                <button type="submit"
+                                    class="bg-yellow-600 hover:bg-yellow-500 text-white text-xs font-bold py-2 px-4 rounded transition-colors w-full flex justify-center items-center gap-2">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                    </svg>
+                                    Simulate Critical Alert
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Security Score (Phase 4) -->
+                <div
+                    class="bg-[#1e293b] overflow-hidden shadow-sm rounded-lg border border-white/10 hover:border-white/20 transition-all duration-300">
+                    <div class="p-5">
+                        <div class="flex items-center justify-between mb-4">
+                            <div>
+                                <h3 class="text-white font-bold flex items-center gap-2">
+                                    <svg class="w-5 h-5 text-purple-400" fill="none" viewBox="0 0 24 24"
+                                        stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                                    </svg>
+                                    Security Status
+                                </h3>
+                                <p class="text-slate-400 text-xs mt-1">Automated vulnerability scan</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between">
+                            <div class="text-3xl font-bold text-white tracking-tight">
+                                {{ $securityResult['score'] }}<span class="text-sm text-slate-500">/100</span>
+                            </div>
+                            <span
+                                class="px-2 py-1 rounded-full text-xs font-bold bg-purple-500/20 text-purple-400 border border-purple-500/30">
+                                {{ $securityResult['status'] }}
+                            </span>
+                        </div>
+
+                        @if(!empty($securityResult['issues']))
+                            <div class="mt-3 space-y-1">
+                                @foreach($securityResult['issues'] as $issue)
+                                    <div class="text-[10px] text-red-400 flex items-center gap-1">
+                                        <span>•</span> {{ $issue }}
+                                    </div>
+                                @endforeach
+                            </div>
+                        @else
+                            <div class="mt-3 text-xs text-emerald-400 flex items-center gap-1">
+                                <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                </svg>
+                                No critical issues found.
+                            </div>
+                        @endif
+                    </div>
+                </div>
                 <div
                     class="bg-[#1e293b] overflow-hidden shadow-sm rounded-lg border border-white/10 hover:border-white/20 transition-all duration-300">
                     <div class="p-5 flex flex-col h-full justify-between">
@@ -283,10 +470,17 @@
                                 <strong>{{ ($revenueLoss['excess_ms'] ?? 0) > 0 ? round(($revenueLoss['excess_ms'] ?? 0) * 0.4) : 0 }}ms</strong>
                                 load time.
                             </p>
-                            <button
-                                class="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold py-2 px-4 rounded transition-colors w-full">
-                                View Autonomous Fixes
-                            </button>
+                            <form action="{{ route('optimization.run') }}" method="POST">
+                                @csrf
+                                <button type="submit"
+                                    class="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold py-2 px-4 rounded transition-colors w-full flex justify-center items-center gap-2">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                    </svg>
+                                    Run Autonomous Optimizations
+                                </button>
+                            </form>
                         </div>
                     </div>
                 </div>
@@ -492,7 +686,7 @@
             // Gather Data
             const healthData = {
                 store_name: '{{ auth()->user()->name }}\'s Store',
-                score: {{ $healthScore->score ?? 0 }},
+                score: {{ optional($healthScore)->score ?? 0 }},
                 performance_score: {{ $metrics['performance'] ?? 0 }},
                 ux_score: {{ $metrics['ux'] ?? 0 }},
                 trust_score: {{ $metrics['trust'] ?? 0 }},
@@ -500,7 +694,8 @@
                 issues: [
                     @if(($revenueLoss['excess_ms'] ?? 0) > 0) 'High Latency ({{ $revenueLoss['excess_ms'] ?? 0 }}ms excess)', @endif
                     @if(($errorRate ?? 0) > 0.01) 'Elevated Error Rate', @endif
-                                ]
+                                    ],
+                recent_alerts: @json($recentAlerts->pluck('title')->take(5))
             };
 
             // Call API

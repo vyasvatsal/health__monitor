@@ -4,16 +4,16 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use App\Services\AI\GeminiService;
+use App\Services\AI\GrokService;
 use Illuminate\Support\Facades\Log;
 
 class AIController extends Controller
 {
-    protected $gemini;
+    protected $ai;
 
-    public function __construct(GeminiService $gemini)
+    public function __construct(GrokService $ai)
     {
-        $this->gemini = $gemini;
+        $this->ai = $ai;
     }
 
     public function analyze(Request $request)
@@ -23,7 +23,7 @@ class AIController extends Controller
         ]);
 
         try {
-            $analysis = $this->gemini->analyzeHealth($request->store_data);
+            $analysis = $this->ai->analyzeHealth($request->store_data);
             return response()->json(['analysis' => $analysis]);
         } catch (\Exception $e) {
             Log::error('AI Analysis Error: ' . $e->getMessage());

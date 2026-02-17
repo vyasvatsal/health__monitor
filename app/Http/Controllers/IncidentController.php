@@ -17,6 +17,34 @@ class IncidentController extends Controller
         return view('incidents.index', compact('incidents'));
     }
 
+    public function create()
+    {
+        return view('incidents.create');
+    }
+
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'description' => 'required|string',
+            'status' => 'required|in:investigating,identified,monitoring,resolved',
+            'severity' => 'required|in:critical,major,minor,maintenance',
+        ]);
+
+        $store = \App\Models\Store::where('user_id', auth()->id())->firstOrFail();
+
+        Incident::create([
+            'store_id' => $store->id,
+            'title' => $validated['title'],
+            'description' => $validated['description'],
+            'status' => $validated['status'],
+            'severity' => $validated['severity'],
+            'occurred_at' => now(),
+        ]);
+
+        return redirect()->route('dashboard')->with('success', 'Incident reported successfully.');
+    }
+
     public function show(Incident $incident)
     {
         if ($incident->store->user_id !== auth()->id()) {
