@@ -13,3 +13,5 @@ Route::get('/health', function () {
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
+
+Route::post('/v1/telemetry', [\App\Http\Controllers\TelemetryController::class, 'store']);
