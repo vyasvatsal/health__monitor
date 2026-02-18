@@ -9,7 +9,7 @@ class ErrorEvent extends Model
 {
     use HasFactory;
 
-    protected $table = 'app_error_events';
+    protected $table = 'error_events';
 
     public $timestamps = false;
 

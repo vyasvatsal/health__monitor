@@ -74,9 +74,9 @@ class ErrorMonitorController extends Controller
 
             // Impacted Users - Count distinct IPs from all events for this store
             'impacted_users' => ErrorGroup::where('store_id', $store->id)
-                ->join('app_error_events', 'error_groups.id', '=', 'app_error_events.error_group_id')
-                ->distinct('app_error_events.payload->ip')
-                ->count('app_error_events.payload->ip')
+                ->join('error_events', 'error_groups.id', '=', 'error_events.error_group_id')
+                ->distinct('error_events.payload->ip')
+                ->count('error_events.payload->ip')
         ];
 
         // 5. Transform Data for View/AlpineJS
