@@ -60,7 +60,7 @@ class DashboardController extends Controller
             ->select(
                 DB::raw('count(*) as total_requests'),
                 DB::raw('avg(latency_ms) as avg_latency'),
-                DB::raw('sum(case when status != "ok" then 1 else 0 end) as error_count')
+                DB::raw("sum(case when status != 'ok' then 1 else 0 end) as error_count")
             )
             ->first();
 
