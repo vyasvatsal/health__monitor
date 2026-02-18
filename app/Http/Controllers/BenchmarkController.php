@@ -11,7 +11,11 @@ class BenchmarkController extends Controller
 {
     public function index()
     {
-        $store = Store::where('user_id', auth()->id())->firstOrFail();
+        $store = Store::where('user_id', auth()->id())->first();
+
+        if (!$store) {
+            return redirect()->route('stores.create')->with('info', 'Please create a project to access Benchmarks.');
+        }
 
         $competitors = Competitor::where('store_id', $store->id)
             ->with([
