@@ -1,7 +1,7 @@
 var ErrorTracker = (function () {
     var config = {
         endpoint: '/api/v1/capture',
-        storeId: null,
+        apiKey: null,
         debug: false
     };
 
@@ -12,9 +12,9 @@ var ErrorTracker = (function () {
     }
 
     function sendError(data) {
-        if (!config.storeId) return;
+        if (!config.apiKey) return;
 
-        data.store_id = config.storeId;
+        data.api_key = config.apiKey;
         data.url = window.location.href;
         data.ip = ''; // IP will be captured by server
 
@@ -36,7 +36,7 @@ var ErrorTracker = (function () {
     return {
         init: function (options) {
             config = Object.assign(config, options);
-            log('Initialized for Store ID: ' + config.storeId);
+            log('Initialized with API Key: ' + (config.apiKey ? '***' : 'Missing'));
 
             // Capture Global Errors
             window.onerror = function (message, source, lineno, colno, error) {

@@ -153,7 +153,7 @@ class TelemetryController extends Controller
     public function capture(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'store_id' => 'required', // Can be integer or string
+            'api_key' => 'required|string',
             'message' => 'required|string',
             'type' => 'nullable|string',
             'file' => 'nullable|string',
@@ -168,10 +168,10 @@ class TelemetryController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Invalid data'], 422);
         }
 
-        // Authenticate Store by ID (Simpler for this endpoint as per user request)
-        $store = Store::find($request->store_id);
+        // Authenticate Store by API Key
+        $store = Store::where('api_key', $request->api_key)->first();
         if (!$store) {
-            return response()->json(['status' => 'error', 'message' => 'Store not found'], 404);
+            return response()->json(['status' => 'error', 'message' => 'Invalid API Key'], 401);
         }
 
         $message = substr($request->message, 0, 1000);
