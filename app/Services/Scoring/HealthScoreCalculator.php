@@ -61,6 +61,10 @@ class HealthScoreCalculator
             'score' => round($scoreValue, 1),
             'metrics_json' => json_encode($metrics),
             'trend' => $trend,
+            'metric_availability' => $metrics['trust'], // Using trust as proxy for availability
+            'metric_performance' => $metrics['performance'],
+            'metric_incidents' => 0, // Assuming 0 incidents for this simulation
+            'recorded_at' => now(),
         ]);
     }
 
