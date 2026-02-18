@@ -147,4 +147,73 @@ class TelemetryController extends Controller
             'errors_logged' => $errorsLogged
         ]);
     }
+    /**
+     * Simplified endpoint for direct error capturing from SDKs.
+     */
+    public function capture(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'store_id' => 'required', // Can be integer or string
+            'message' => 'required|string',
+            'type' => 'nullable|string',
+            'file' => 'nullable|string',
+            'line' => 'nullable|integer',
+            'trace' => 'nullable|string',
+            'url' => 'nullable|string',
+            'method' => 'nullable|string',
+            'ip' => 'nullable|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['status' => 'error', 'message' => 'Invalid data'], 422);
+        }
+
+        // Authenticate Store by ID (Simpler for this endpoint as per user request)
+        $store = Store::find($request->store_id);
+        if (!$store) {
+            return response()->json(['status' => 'error', 'message' => 'Store not found'], 404);
+        }
+
+        $message = substr($request->message, 0, 1000);
+        $file = $request->file ?? 'unknown';
+        $line = $request->line ?? 0;
+        $trace = $request->trace;
+
+        // 1. Fingerprint
+        $fingerprint = md5($message . $file . $line);
+
+        // 2. Find or Create Group
+        $errorGroup = ErrorGroup::firstOrCreate(
+            ['store_id' => $store->id, 'fingerprint' => $fingerprint],
+            [
+                'title' => substr($message, 0, 250),
+                'status' => 'open',
+                'last_seen_at' => now(),
+                'count' => 0
+            ]
+        );
+
+        // 3. Update Group
+        $errorGroup->increment('count');
+        $errorGroup->update(['last_seen_at' => now()]);
+
+        // 4. Create Event
+        ErrorEvent::create([
+            'error_group_id' => $errorGroup->id,
+            'message' => $message,
+            'payload' => [
+                'type' => $request->type ?? 'Unknown',
+                'file' => $file,
+                'line' => $line,
+                'url' => $request->url,
+                'method' => $request->method,
+                'ip' => $request->ip ?? $request->ip(),
+                'userAgent' => $request->header('User-Agent'),
+            ],
+            'stack_trace' => $trace,
+            'occurred_at' => now(),
+        ]);
+
+        return response()->json(['status' => 'success']);
+    }
 }
