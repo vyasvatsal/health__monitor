@@ -86,7 +86,7 @@ class DashboardController extends Controller
             ->get();
 
         // 4. AI Health Score
-        $healthService = new \App\Services\Scoring\HealthScoreCalculator();
+        $healthService = new \App\Services\Scoring\HealthScoreCalculator($store);
         $healthScore = $healthService->getLatest();
 
         // 5. Chart Data (Requests per Hour)

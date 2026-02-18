@@ -7,6 +7,13 @@ use Illuminate\Support\Facades\Log;
 
 class HealthScoreCalculator
 {
+    protected $store;
+
+    public function __construct(\App\Models\Store $store)
+    {
+        $this->store = $store;
+    }
+
     /**
      * Calculate and save the current health score.
      * 
@@ -38,7 +45,7 @@ class HealthScoreCalculator
         );
 
         // Determine trend (simplified for now)
-        $lastScore = HealthScore::latest()->first();
+        $lastScore = HealthScore::where('store_id', $this->store->id)->latest()->first();
         $trend = 'stable';
 
         if ($lastScore) {
@@ -50,6 +57,7 @@ class HealthScoreCalculator
         }
 
         return HealthScore::create([
+            'store_id' => $this->store->id,
             'score' => round($scoreValue, 1),
             'metrics_json' => json_encode($metrics),
             'trend' => $trend,
@@ -58,6 +66,6 @@ class HealthScoreCalculator
 
     public function getLatest()
     {
-        return HealthScore::latest()->first() ?? $this->calculate();
+        return HealthScore::where('store_id', $this->store->id)->latest()->first() ?? $this->calculate();
     }
 }
