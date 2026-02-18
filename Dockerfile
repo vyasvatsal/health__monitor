@@ -30,14 +30,19 @@ WORKDIR /var/www/html
 # Copy Nginx config
 COPY docker/nginx.conf /etc/nginx/sites-available/default
  
+# Copy Composer dependencies
+COPY composer.json composer.lock ./
+RUN composer install --no-dev --optimize-autoloader --no-scripts --no-progress
+
+# Copy Node dependencies
+COPY package.json package-lock.json ./
+RUN npm install
+
 # Copy application code
 COPY . /var/www/html
- 
-# Install Composer dependencies
-RUN composer install --no-dev --optimize-autoloader
- 
-# Install NPM dependencies and build assets
-RUN npm install && npm run build
+
+# Build frontend assets
+RUN npm run build
  
 # Set permissions
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache && \
