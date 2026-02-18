@@ -11,6 +11,7 @@ RUN apt-get update && apt-get install -y \
     unzip \
     libzip-dev \
     libpq-dev \
+    libicu-dev \
     nginx
  
 # Install PHP extensions
