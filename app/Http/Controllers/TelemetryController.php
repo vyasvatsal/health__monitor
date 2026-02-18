@@ -9,7 +9,8 @@ use App\Models\CheckResult;
 use App\Models\Incident;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Validator;
-use App\Models\ErrorLog;
+use App\Models\ErrorGroup;
+use App\Models\ErrorEvent;
 
 class TelemetryController extends Controller
 {
@@ -20,7 +21,7 @@ class TelemetryController extends Controller
             'api_key' => 'required|string',
             'checks' => 'required|array',
             'checks.*.name' => 'required|string',
-            'checks.*.status' => 'required|string', // Removed strict 'in' validation to allow flexibility, or keep if types are known
+            'checks.*.status' => 'required|string',
             'checks.*.latency' => 'nullable|integer',
             'checks.*.payload' => 'nullable|array',
             'checks.*.type' => 'nullable|string',
@@ -47,37 +48,48 @@ class TelemetryController extends Controller
             if (in_array($type, ['client_error', 'server_error'])) {
                 $payload = $checkData['payload'] ?? [];
 
-                // Fingerprint the error to group duplicates
-                // For JS: message + file + line
-                // For PHP: message + file + line
                 $message = $payload['message'] ?? 'Unknown Error';
-                $file = $payload['file'] ?? null;
-                $line = $payload['line'] ?? null;
+                $file = $payload['file'] ?? $payload['filename'] ?? 'unknown'; // Handle JS 'filename'
+                $line = $payload['line'] ?? $payload['lineno'] ?? 0; // Handle JS 'lineno'
+                $trace = $payload['trace'] ?? null;
 
-                $existingError = ErrorLog::where('store_id', $store->id)
-                    ->where('message', $message)
-                    ->where('file', $file)
-                    ->where('line', $line)
-                    ->where('status', '!=', 'resolved')
-                    ->first();
+                // 1. Generate Fingerprint
+                // Combine message, file, and line to create a unique signature
+                $fingerprintString = $message . $file . $line;
+                $fingerprint = md5($fingerprintString);
 
-                if ($existingError) {
-                    $existingError->increment('count');
-                    $existingError->update(['last_seen_at' => now()]);
-                } else {
-                    ErrorLog::create([
+                // 2. Find or Create Error Group
+                $errorGroup = ErrorGroup::firstOrCreate(
+                    [
                         'store_id' => $store->id,
-                        'type' => $payload['type'] ?? ($type === 'client_error' ? 'JS Runtime' : 'Server Error'),
-                        'message' => $message,
+                        'fingerprint' => $fingerprint
+                    ],
+                    [
+                        'title' => substr($message, 0, 250), // Limit title length
+                        'status' => 'open',
+                        'last_seen_at' => now(),
+                        'count' => 0 // Will be incremented
+                    ]
+                );
+
+                // 3. Update Group Stats
+                $errorGroup->increment('count');
+                $errorGroup->update(['last_seen_at' => now()]);
+
+                // 4. Create Error Event
+                ErrorEvent::create([
+                    'error_group_id' => $errorGroup->id,
+                    'message' => $message,
+                    'payload' => array_merge($payload, [
                         'file' => $file,
                         'line' => $line,
-                        'trace' => $payload['trace'] ?? null,
-                        'context' => $payload['context'] ?? $payload, // Fallback to full payload
-                        'severity' => 'critical', // Defaulting to critical for reported errors
-                        'status' => 'new',
-                        'last_seen_at' => now(),
-                    ]);
-                }
+                        'userAgent' => $request->header('User-Agent'),
+                        'ip' => $request->ip()
+                    ]),
+                    'stack_trace' => is_array($trace) ? json_encode($trace) : $trace,
+                    'occurred_at' => now(),
+                ]);
+
                 $errorsLogged++;
             }
 
