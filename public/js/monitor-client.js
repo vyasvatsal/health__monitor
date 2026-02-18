@@ -1,81 +1,111 @@
-(function () {
-    // 1. Get Configuration
-    const script = document.currentScript;
-    const apiKey = script.getAttribute('data-key');
-    const endpoint = script.getAttribute('data-endpoint') || 'http://localhost:8000/api/v1/telemetry';
+/**
+ * Health Monitor Client SDK
+ * Captures JavaScript errors and performance metrics.
+ */
+(function (window) {
+    'use strict';
 
-    if (!apiKey) {
-        console.warn('AI Store Monitor: No API Key provided.');
-        return;
-    }
+    const CONFIG = {
+        endpoint: 'http://localhost:8000/api/v1/track', // Default, should be overridden
+        publicKey: null,
+        debug: false
+    };
 
-    // 2. Helper to send data
-    function sendTelemetry(checks) {
-        // Use sendBeacon if available for better reliability on unload
-        const payload = JSON.stringify({
-            api_key: apiKey,
-            checks: checks
-        });
+    const CONTEXT = {
+        device: {
+            userAgent: navigator.userAgent,
+            language: navigator.language,
+            platform: navigator.platform,
+            screen: {
+                width: window.screen.width,
+                height: window.screen.height
+            }
+        },
+        tags: []
+    };
 
-        if (navigator.sendBeacon) {
-            const blob = new Blob([payload], { type: 'application/json' });
-            navigator.sendBeacon(endpoint, blob);
-        } else {
-            fetch(endpoint, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: payload,
-                keepalive: true
-            }).catch(e => console.error('Telemetry Error:', e));
+    function log(message, data) {
+        if (CONFIG.debug) {
+            console.log(`[Monitor SDK] ${message}`, data || '');
         }
     }
 
-    // 3. Capture Page Load Performance
-    window.addEventListener('load', () => {
-        // Wait a tick to ensure timing is populated
-        setTimeout(() => {
-            const perf = window.performance;
-            if (perf && perf.timing) {
-                const t = perf.timing;
-                const loadTime = t.loadEventEnd - t.navigationStart;
-                const dnsTime = t.domainLookupEnd - t.domainLookupStart;
-                const serverTime = t.responseStart - t.requestStart;
+    function sendPayload(payload) {
+        if (!CONFIG.publicKey) {
+            log('Public Key not configured. Dropping payload.');
+            return;
+        }
 
-                sendTelemetry([
-                    {
-                        name: 'Page Load Performance',
-                        type: 'browser_performance',
-                        status: loadTime > 2000 ? 'warning' : 'ok', // Simple threshold
-                        latency: loadTime,
-                        payload: {
-                            dns: dnsTime,
-                            ttfb: serverTime,
-                            url: window.location.pathname
-                        }
-                    }
-                ]);
+        fetch(CONFIG.endpoint, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Monitor-Key': CONFIG.publicKey,
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        }).then(response => {
+            if (!response.ok) {
+                log('Failed to send payload', response.statusText);
+            } else {
+                log('Payload sent successfully');
             }
-        }, 0);
-    });
+        }).catch(error => {
+            log('Network error sending payload', error);
+        });
+    }
 
-    // 4. Capture JS Errors
-    window.addEventListener('error', (event) => {
-        sendTelemetry([
-            {
-                name: 'JavaScript Error',
-                type: 'browser_error',
-                status: 'critical',
-                latency: 0,
-                payload: {
-                    message: event.message,
-                    filename: event.filename,
-                    lineno: event.lineno,
-                    colno: event.colno,
-                    url: window.location.href
-                }
-            }
-        ]);
-    });
+    function captureException(error, context = {}) {
+        const payload = {
+            exception: {
+                type: error.name || 'Error',
+                message: error.message || 'Unknown Error',
+                file: error.fileName || error.sourceURL || 'unknown', // Non-standard but common
+                line: error.lineNumber || error.line || 0, // Non-standard but common
+                trace: error.stack || 'No stack trace available'
+            },
+            context: { ...CONTEXT, ...context },
+            device: CONTEXT.device,
+            tags: CONTEXT.tags
+        };
 
-    console.log('AI Store Monitor: Active');
-})();
+        sendPayload(payload);
+    }
+
+    // Global Error Handler
+    window.onerror = function (message, source, lineno, colno, error) {
+        captureException({
+            message: message,
+            fileName: source,
+            lineNumber: lineno,
+            stack: error ? error.stack : null,
+            name: error ? error.name : 'WindowError'
+        });
+        return false; // Let default handler run
+    };
+
+    // Unhandled Promise Rejection
+    window.onunhandledrejection = function (event) {
+        captureException({
+            message: 'Unhandled Promise Rejection: ' + (event.reason ? (event.reason.message || event.reason) : 'Unknown'),
+            name: 'UnhandledRejection',
+            stack: event.reason ? event.reason.stack : null
+        });
+    };
+
+    // Public API
+    window.HealthMonitor = {
+        init: function (options) {
+            if (options.endpoint) CONFIG.endpoint = options.endpoint;
+            if (options.publicKey) CONFIG.publicKey = options.publicKey;
+            if (options.debug) CONFIG.debug = options.debug;
+
+            log('Initialized with config', CONFIG);
+        },
+        captureException: captureException,
+        context: function (key, value) {
+            CONTEXT[key] = value;
+        }
+    };
+
+})(window);

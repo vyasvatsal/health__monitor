@@ -3,105 +3,117 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\ErrorEvent;
-use App\Models\ErrorGroup;
-use App\Models\Store;
 use Illuminate\Http\Request;
+use App\Models\Store;
+use App\Models\ErrorGroup;
+use App\Models\ErrorEvent;
+use Illuminate\Support\Facades\Validator;
+use App\Jobs\AnalyzeErrorJob;
 use Illuminate\Support\Str;
 
 class ErrorTrackingController extends Controller
 {
-    public function capture(Request $request)
+    /**
+     * Ingest error reports from SDKs
+     */
+    public function store(Request $request)
     {
-        try {
-            $validated = $request->validate([
-                'store_id' => 'required',
-                'message' => 'required|string',
-                'type' => 'nullable|string',
-                'file' => 'nullable|string',
-                'line' => 'nullable|integer',
-                'trace' => 'nullable|string',
-                'url' => 'nullable|string',
-                'method' => 'nullable|string',
-                'ip' => 'nullable|string',
-            ]);
+        // 1. Authenticate via Header
+        $monitorKey = $request->header('X-Monitor-Key');
 
-            $store = Store::find($validated['store_id']);
-
-            if (!$store) {
-                return response()->json(['message' => 'Store not found'], 404);
-            }
-
-            // Generate a fingerprint to group similar errors
-            // Group by: type + file + line + message (simplified)
-            $fingerprintString = ($validated['type'] ?? 'Error') .
-                ($validated['file'] ?? '') .
-                ($validated['line'] ?? '') .
-                $validated['message'];
-
-            $fingerprint = md5($fingerprintString);
-
-            // Find or Create Error Group
-            $group = ErrorGroup::firstOrCreate(
-                [
-                    'store_id' => $store->id,
-                    'fingerprint' => $fingerprint
-                ],
-                [
-                    'title' => Str::limit($validated['message'], 250), // Title defaults to message
-                    'status' => 'open',
-                    'last_seen_at' => now(),
-                    'count' => 0
-                ]
-            );
-
-            // Update Group Stats
-            $group->increment('count');
-            $group->update(['last_seen_at' => now()]);
-
-            // AI Analysis (Trigger if not exists)
-            if (is_null($group->ai_analysis)) {
-                // Dispatch Job asynchronously
-                try {
-                    \App\Jobs\AnalyzeErrorJob::dispatch($group, $validated['message'], $validated['trace'] ?? null);
-                } catch (\Exception $e) {
-                    \Illuminate\Support\Facades\Log::error('Failed to dispatch AI Job: ' . $e->getMessage());
-                }
-            }
-
-            // Re-open if it was resolved
-            if ($group->status === 'resolved') {
-                $group->update(['status' => 'open']);
-            }
-
-            // Create Error Event
-            $event = $group->events()->create([
-                'message' => $validated['message'],
-                'payload' => [
-                    'type' => $validated['type'] ?? 'Error',
-                    'file' => $validated['file'] ?? null,
-                    'line' => $validated['line'] ?? null,
-                    'trace' => $validated['trace'] ?? null,
-                    'url' => $validated['url'] ?? null,
-                    'method' => $validated['method'] ?? null,
-                    'ip' => $validated['ip'] ?? null,
-                    'userAgent' => $request->header('User-Agent'),
-                ],
-                'stack_trace' => $validated['trace'] ?? null,
-                'occurred_at' => now(),
-            ]);
-
-            return response()->json([
-                'message' => 'Error captured',
-                'id' => $event->id,
-                'group_id' => $group->id
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'error' => 'Server Error',
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ], 500);
+        if (!$monitorKey) {
+            return response()->json(['error' => 'Missing X-Monitor-Key header'], 401);
         }
+
+        // Try finding by Public Key (Frontend) or Secret Key (Backend)
+        $store = Store::where('public_key', $monitorKey)
+            ->orWhere('secret_key', $monitorKey)
+            ->first();
+
+        if (!$store) {
+            // Fallback for backward compatibility (legacy api_key)
+            $store = Store::where('api_key', $monitorKey)->first();
+        }
+
+        if (!$store) {
+            return response()->json(['error' => 'Invalid Monitor Key'], 401);
+        }
+
+        // 2. Validate Payload
+        $validator = Validator::make($request->all(), [
+            'exception.message' => 'required|string',
+            'exception.type' => 'nullable|string',
+            'exception.file' => 'nullable|string',
+            'exception.line' => 'nullable|integer',
+            'exception.trace' => 'nullable', // string or array
+            'context' => 'nullable|array',
+            'device' => 'nullable|array',
+            'tags' => 'nullable|array',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['error' => 'Invalid payload', 'details' => $validator->errors()], 422);
+        }
+
+        $data = $request->all();
+        $exception = $data['exception'];
+
+        // 3. Fingerprinting (Group Errors)
+        // Create a unique hash based on message + file + line + type
+        // Use a simplified message for grouping to avoid duplicates from variable content
+        $fingerprintSource = $exception['type'] .
+            $exception['file'] .
+            $exception['line'] .
+            substr($exception['message'], 0, 100);
+
+        $fingerprint = md5($fingerprintSource);
+
+        $errorGroup = ErrorGroup::firstOrCreate(
+            [
+                'store_id' => $store->id,
+                'fingerprint' => $fingerprint
+            ],
+            [
+                'title' => substr($exception['message'], 0, 250),
+                'status' => 'open',
+                'last_seen_at' => now(),
+                'count' => 0
+            ]
+        );
+
+        // 4. Update Stats
+        $errorGroup->increment('count');
+        $errorGroup->update(['last_seen_at' => now()]);
+
+        // 5. Store Event
+        $trace = is_array($exception['trace']) ? json_encode($exception['trace']) : $exception['trace'];
+
+        $event = ErrorEvent::create([
+            'error_group_id' => $errorGroup->id,
+            'message' => $exception['message'],
+            'stack_trace' => $trace,
+            'payload' => [
+                'type' => $exception['type'] ?? 'Error',
+                'file' => $exception['file'] ?? 'unknown',
+                'line' => $exception['line'] ?? 0,
+                'context' => $data['context'] ?? [],
+                'device' => $data['device'] ?? [],
+                'tags' => $data['tags'] ?? [],
+                'ip' => $request->ip(),
+                'userAgent' => $request->header('User-Agent'),
+            ],
+            'occurred_at' => now(),
+        ]);
+
+        // 6. Trigger AI Analysis
+        // Only if it's a new group or hasn't been analyzed yet
+        if (!$errorGroup->ai_analysis) {
+            AnalyzeErrorJob::dispatch($errorGroup, $exception['message'], $trace);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'event_id' => $event->id
+        ], 201);
     }
 }
