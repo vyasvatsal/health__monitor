@@ -93,7 +93,7 @@ class DashboardController extends Controller
         $chartData = CheckResult::whereHas('check', fn($q) => $q->where('store_id', $store->id))
             ->where('created_at', '>=', $twentyFourHoursAgo)
             ->select(
-                DB::raw('HOUR(created_at) as hour'),
+                DB::raw('EXTRACT(HOUR FROM created_at) as hour'),
                 DB::raw('count(*) as count'),
                 DB::raw('avg(latency_ms) as lat')
             )
