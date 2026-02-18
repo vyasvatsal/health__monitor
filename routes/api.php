@@ -15,3 +15,4 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 });
 
 Route::post('/v1/telemetry', [\App\Http\Controllers\TelemetryController::class, 'store']);
+Route::post('/v1/capture', [\App\Http\Controllers\TelemetryController::class, 'capture']);
