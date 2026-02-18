@@ -3,6 +3,19 @@
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
+Route::get('/debug-deploy', function () {
+    return [
+        'base_path' => base_path(),
+        'resource_path' => resource_path(),
+        'resource_views_path' => resource_path('views'),
+        'resource_views_exists' => is_dir(resource_path('views')),
+        'storage_path' => storage_path(),
+        'storage_framework_views_exists' => is_dir(storage_path('framework/views')),
+        'views_files' => is_dir(resource_path('views')) ? scandir(resource_path('views')) : 'NOT_FOUND',
+        'env_vercel' => $_ENV['VERCEL'] ?? 'NOT_SET',
+    ];
+});
+
 Route::get('/', function () {
     return view('welcome');
 });
