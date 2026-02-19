@@ -57,6 +57,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Error Monitor
     Route::get('/monitor/errors', [App\Http\Controllers\ErrorMonitorController::class, 'index'])->name('monitor.errors');
+
+    // Tools - Image Compression
+    Route::get('/tools/compression', [App\Http\Controllers\ImageCompressionController::class, 'index'])->name('tools.compression');
+    Route::post('/tools/compression/run', [App\Http\Controllers\ImageCompressionController::class, 'compress'])->name('tools.compression.run');
 });
 
 Route::middleware('auth')->group(function () {

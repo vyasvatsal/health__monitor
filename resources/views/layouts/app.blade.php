@@ -166,6 +166,7 @@
                         ['url' => route('benchmarks.index'), 'icon' => 'analytics', 'label' => 'Benchmarks', 'route' => 'benchmarks*'],
                         ['url' => route('incidents.index'), 'icon' => 'warning', 'label' => 'Incidents', 'route' => 'incidents*'],
                         ['url' => route('monitor.errors'), 'icon' => 'bug_report', 'label' => 'Error Detection', 'route' => 'monitor.errors*'],
+                        ['url' => route('tools.compression'), 'icon' => 'compress', 'label' => 'Image Tool', 'route' => 'tools.compression*'],
                     ] as $item)
                     <a href="{{ $item['url'] }}" 
                        class="sidebar-link group {{ request()->is($item['route']) || request()->routeIs($item['route']) ? 'active' : '' }}"
