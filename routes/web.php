@@ -63,6 +63,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/tools/compression/run', [App\Http\Controllers\ImageCompressionController::class, 'compress'])->name('tools.compression.run');
     Route::get('/tools/compression/download/{id}', [App\Http\Controllers\ImageCompressionController::class, 'download'])->name('tools.compression.download');
 
+    // AI Chat Tool
+    Route::get('/tools/ai-chat', [App\Http\Controllers\AI\AIChatController::class, 'index'])->name('tools.ai-chat');
+    Route::post('/tools/ai-chat/send', [App\Http\Controllers\AI\AIChatController::class, 'chat'])->name('tools.ai-chat.send');
+
     // AI Analysis (Dashboard)
     Route::post('/ai/analyze', [App\Http\Controllers\AI\AIHealthController::class, 'analyze'])->name('ai.analyze');
 

@@ -45,6 +45,8 @@ class AIHealthController extends Controller
 
 
 
+            $responseContent = $response['content'];
+
             return response()->json([
                 'status' => 'success',
                 'analysis' => $responseContent
