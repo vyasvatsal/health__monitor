@@ -80,23 +80,34 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        'Accept': 'application/json', // Ensure we ask for JSON
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
                     },
                     body: JSON.stringify({ message })
                 });
 
-                const data = await response.json();
+                const text = await response.text();
+                let data;
+
+                try {
+                    data = JSON.parse(text);
+                } catch (e) {
+                    console.error('Invalid JSON Response:', text);
+                    throw new Error('Server returned invalid response (See console for details)');
+                }
+
+                if (!response.ok) {
+                    throw new Error(data.error || `HTTP Error ${response.status}`);
+                }
 
                 if (data.status === 'success') {
                     // Add AI Response
-                    const formattedReply = marked.parse(data.reply); // Assuming marked.js is available (or simple text)
-                    // If marked isn't loaded, fallback to simple text
-                    const replyContent = (typeof marked !== 'undefined') ? formattedReply : escapeHtml(data.reply).replace(/\n/g, '<br>');
+                    const formattedReply = (typeof marked !== 'undefined') ? marked.parse(data.reply) : escapeHtml(data.reply).replace(/\n/g, '<br>');
 
                     history.innerHTML += `
                         <div class="flex justify-start">
                             <div class="bg-slate-700 text-slate-200 rounded-lg rounded-tl-none px-4 py-2 max-w-[80%] prose prose-invert prose-sm">
-                                ${replyContent}
+                                ${formattedReply}
                             </div>
                         </div>
                     `;
