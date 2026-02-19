@@ -162,6 +162,44 @@
                                                     </div>
                                                 </div>
                                             </div>
+
+                                            <!-- SEO -->
+                                            <div>
+                                                <div class="flex justify-between text-xs text-slate-400 mb-2">
+                                                    <span class="font-medium">SEO Check</span>
+                                                    @php 
+                                                        $mySeo = $lastResult->details['seo'] ?? []; 
+                                                        $mySeoScore = 0;
+                                                        if(!empty($mySeo['title'])) $mySeoScore += 33;
+                                                        if(!empty($mySeo['description'])) $mySeoScore += 33;
+                                                        if(!empty($mySeo['h1'])) $mySeoScore += 34;
+                                                    @endphp
+                                                    <span class="{{ $mySeoScore > 80 ? 'text-emerald-400' : ($mySeoScore > 50 ? 'text-yellow-400' : 'text-red-400') }} font-bold">
+                                                        {{ $mySeoScore }}%
+                                                    </span>
+                                                </div>
+                                                <div class="flex gap-1">
+                                                    <span title="Title Tag" class="px-1.5 py-0.5 rounded text-[10px] {{ !empty($mySeo['title']) ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400' }}">Title</span>
+                                                    <span title="Meta Description" class="px-1.5 py-0.5 rounded text-[10px] {{ !empty($mySeo['description']) ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400' }}">Desc</span>
+                                                    <span title="H1 Tag" class="px-1.5 py-0.5 rounded text-[10px] {{ !empty($mySeo['h1']) ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400' }}">H1</span>
+                                                </div>
+                                            </div>
+
+                                            <!-- Accessibility -->
+                                            <div>
+                                                <div class="flex justify-between text-xs text-slate-400 mb-2">
+                                                    <span class="font-medium">Accessibility (Img Alt)</span>
+                                                    @php $myAlly = $lastResult->details['ally']['score'] ?? 0; @endphp
+                                                    <span class="{{ $myAlly > 80 ? 'text-emerald-400' : ($myAlly > 50 ? 'text-yellow-400' : 'text-red-400') }} font-bold">
+                                                        {{ $myAlly }}%
+                                                    </span>
+                                                </div>
+                                                <div class="h-1.5 bg-slate-700/50 rounded-full overflow-hidden">
+                                                    <div class="h-full rounded-full {{ $myAlly > 80 ? 'bg-emerald-500' : ($myAlly > 50 ? 'bg-yellow-500' : 'bg-red-500') }}"
+                                                        style="width: {{ $myAlly }}%">
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
 
@@ -207,6 +245,52 @@
                                                 <div class="h-1.5 bg-slate-700/50 rounded-full overflow-hidden">
                                                     <div class="h-full rounded-full {{ $lastResult->competitor_size_kb < $lastResult->my_size_kb ? 'bg-emerald-500' : 'bg-slate-500' }}"
                                                         style="width: {{ min(($lastResult->competitor_size_kb / $maxSize) * 100, 100) }}%">
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- SEO -->
+                                            <div>
+                                                <div class="flex justify-between text-xs text-slate-400 mb-2">
+                                                    <span class="font-medium">SEO Check</span>
+                                                    @php 
+                                                        // Note: In my updated Runner, I am not separating my_assets/comp_assets in 'details' root anymore. 
+                                                        // I returned ['seo' => ..., 'ally' => ...] in the root of the array.
+                                                        // Wait, in BenchmarkRunner.php:
+                                                        // return [ 'ttfb' => ..., 'assets' => [ ... 'seo' => ..., 'ally' => ... ] ]
+                                                        // And then:
+                                                        // 'details' => json_encode([ 'my_assets' => $myStats['assets'], 'comp_assets' => $compStats['assets'] ])
+                                                        // SO YES, I DO need to access via my_assets/comp_assets.
+                                                        
+                                                        $compSeo = $lastResult->details['comp_assets']['seo'] ?? []; 
+                                                        $compSeoScore = 0;
+                                                        if(!empty($compSeo['title'])) $compSeoScore += 33;
+                                                        if(!empty($compSeo['description'])) $compSeoScore += 33;
+                                                        if(!empty($compSeo['h1'])) $compSeoScore += 34;
+                                                    @endphp
+                                                    <span class="{{ $compSeoScore > 80 ? 'text-emerald-400' : ($compSeoScore > 50 ? 'text-yellow-400' : 'text-red-400') }} font-bold">
+                                                        {{ $compSeoScore }}%
+                                                    </span>
+                                                </div>
+                                                <div class="flex gap-1">
+                                                    <span title="Title Tag" class="px-1.5 py-0.5 rounded text-[10px] {{ !empty($compSeo['title']) ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400' }}">Title</span>
+                                                    <span title="Meta Description" class="px-1.5 py-0.5 rounded text-[10px] {{ !empty($compSeo['description']) ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400' }}">Desc</span>
+                                                    <span title="H1 Tag" class="px-1.5 py-0.5 rounded text-[10px] {{ !empty($compSeo['h1']) ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400' }}">H1</span>
+                                                </div>
+                                            </div>
+
+                                            <!-- Accessibility -->
+                                            <div>
+                                                <div class="flex justify-between text-xs text-slate-400 mb-2">
+                                                    <span class="font-medium">Accessibility (Img Alt)</span>
+                                                    @php $compAlly = $lastResult->details['comp_assets']['ally']['score'] ?? 0; @endphp
+                                                    <span class="{{ $compAlly > 80 ? 'text-emerald-400' : ($compAlly > 50 ? 'text-yellow-400' : 'text-red-400') }} font-bold">
+                                                        {{ $compAlly }}%
+                                                    </span>
+                                                </div>
+                                                <div class="h-1.5 bg-slate-700/50 rounded-full overflow-hidden">
+                                                    <div class="h-full rounded-full {{ $compAlly > 80 ? 'bg-emerald-500' : ($compAlly > 50 ? 'bg-yellow-500' : 'bg-red-500') }}"
+                                                        style="width: {{ $compAlly }}%">
                                                     </div>
                                                 </div>
                                             </div>

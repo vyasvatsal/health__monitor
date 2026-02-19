@@ -11,6 +11,11 @@ class BenchmarkResult extends Model
 
     protected $guarded = [];
 
+    protected $casts = [
+        'details' => 'array',
+        'created_at' => 'datetime',
+    ];
+
     public function competitor()
     {
         return $this->belongsTo(Competitor::class);

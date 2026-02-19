@@ -62,7 +62,12 @@ class BenchmarkRunner
     {
         try {
             $start = microtime(true);
-            $response = Http::timeout(10)->get($url);
+            $response = Http::withHeaders([
+                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            ])
+                ->timeout(10)
+                ->get($url);
+
             $duration = (microtime(true) - $start) * 1000; // ms
 
             $body = $response->body();
@@ -72,19 +77,42 @@ class BenchmarkRunner
             $scriptCount = preg_match_all('/<script/i', $body);
             $imgCount = preg_match_all('/<img/i', $body);
 
+            // SEO Checks
+            $hasTitle = preg_match('/<title[^>]*>(.*?)<\/title>/is', $body);
+            $hasDesc = preg_match('/<meta[^>]*name=["\']description["\'][^>]*content=["\'](.*?)["\'][^>]*>/i', $body);
+            $h1Count = preg_match_all('/<h1/i', $body);
+
+            // Accessibility Checks
+            $imagesWithAlt = preg_match_all('/<img[^>]+alt=["\'][^"\']+["\'][^>]*>/i', $body);
+            $allyScore = $imgCount > 0 ? round(($imagesWithAlt / $imgCount) * 100) : 100;
+
             return [
                 'ttfb' => round($duration),
                 'size' => $sizeKb,
                 'assets' => [
                     'scripts' => $scriptCount,
-                    'images' => $imgCount
+                    'images' => $imgCount,
+                    'seo' => [
+                        'title' => (bool) $hasTitle,
+                        'description' => (bool) $hasDesc,
+                        'h1' => $h1Count
+                    ],
+                    'ally' => [
+                        'score' => $allyScore,
+                        'alt_tags' => $imagesWithAlt
+                    ]
                 ]
             ];
         } catch (\Exception $e) {
             return [
                 'ttfb' => 9999, // penalty
                 'size' => 0,
-                'assets' => ['scripts' => 0, 'images' => 0]
+                'assets' => [
+                    'scripts' => 0,
+                    'images' => 0,
+                    'seo' => ['title' => false, 'description' => false, 'h1' => 0],
+                    'ally' => ['score' => 0, 'alt_tags' => 0]
+                ]
             ];
         }
     }
