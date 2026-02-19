@@ -61,6 +61,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Tools - Image Compression
     Route::get('/tools/compression', [App\Http\Controllers\ImageCompressionController::class, 'index'])->name('tools.compression');
     Route::post('/tools/compression/run', [App\Http\Controllers\ImageCompressionController::class, 'compress'])->name('tools.compression.run');
+    Route::get('/tools/compression/download/{id}', [App\Http\Controllers\ImageCompressionController::class, 'download'])->name('tools.compression.download');
 });
 
 Route::middleware('auth')->group(function () {

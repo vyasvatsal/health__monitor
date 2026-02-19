@@ -70,6 +70,20 @@ class ImageCompressionController extends Controller
             $compressedSize = strlen($compressedData);
             $base64 = base64_encode($compressedData);
 
+            // Store in DB
+            $tempImage = \App\Models\TemporaryImage::create([
+                'file_name' => $file->getClientOriginalName(),
+                'mime_type' => 'image/jpeg', // We are forcing JPEG for now
+                'image_data' => $base64,
+                'original_size' => $originalSize,
+                'compressed_size' => $compressedSize,
+            ]);
+
+            // Opportunistic cleanup (1% chance or just run it? Let's run it)
+            // ideally this should be a scheduled job, but for now this ensures cleanup on serverless
+            // without external cron if traffic is low.
+            $this->cleanup();
+
             return response()->json([
                 'success' => true,
                 'original_size' => $this->formatBytes($originalSize),
@@ -77,7 +91,8 @@ class ImageCompressionController extends Controller
                 'saved_bytes' => $this->formatBytes($originalSize - $compressedSize),
                 'saved_percent' => round((($originalSize - $compressedSize) / $originalSize) * 100, 2) . '%',
                 'image_base64' => 'data:image/jpeg;base64,' . $base64,
-                'mime_type' => 'image/jpeg'
+                'mime_type' => 'image/jpeg',
+                'download_url' => route('tools.compression.download', $tempImage->id),
             ]);
 
         } catch (\Exception $e) {
@@ -87,6 +102,23 @@ class ImageCompressionController extends Controller
                 'message' => 'Image compression failed. ' . $e->getMessage(),
             ], 500);
         }
+    }
+
+    public function download($id)
+    {
+        $image = \App\Models\TemporaryImage::findOrFail($id);
+
+        $data = base64_decode($image->image_data);
+
+        return response($data)
+            ->header('Content-Type', $image->mime_type)
+            ->header('Content-Disposition', 'attachment; filename="compressed-' . $image->file_name . '"');
+    }
+
+    private function cleanup()
+    {
+        // Delete images older than 1 hour
+        \App\Models\TemporaryImage::where('created_at', '<', now()->subHour())->delete();
     }
 
     private function formatBytes($bytes, $precision = 2)
