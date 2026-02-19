@@ -47,10 +47,10 @@ class BenchmarkRunner
             'my_size_kb' => $myStats['size'],
             'competitor_size_kb' => $compStats['size'],
             'winner' => $winner,
-            'details' => json_encode([
+            'details' => [
                 'my_assets' => $myStats['assets'],
                 'comp_assets' => $compStats['assets']
-            ]),
+            ],
         ]);
 
         $competitor->update(['last_audit_at' => now()]);
