@@ -10,7 +10,6 @@
         .img-comp-container {
             position: relative;
             height: 400px;
-            /* Default height, JS will adjust */
             overflow: hidden;
             border-radius: 0.5rem;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
@@ -26,7 +25,6 @@
         .img-comp-img img {
             display: block;
             max-width: none;
-            /* Important for slider alignment */
             height: 100%;
             object-fit: cover;
         }
@@ -60,25 +58,12 @@
             transform: translate(-50%, -50%) scale(1.1);
             background-color: #f8fafc;
         }
-
-        .glass-panel {
-            background: rgba(255, 255, 255, 0.95); /* More opaque for better readability */
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.5);
-            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
-        }
-
-        .dark .glass-panel {
-            background: rgba(17, 24, 39, 0.85);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
-        }
     </style>
 
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             <div
-                class="glass-panel overflow-hidden shadow-xl sm:rounded-2xl transition-all duration-300 hover:shadow-2xl">
+                class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg border border-gray-100 dark:border-gray-700 transition-all duration-300 hover:shadow-lg">
                 <div class="p-8 text-gray-900 dark:text-gray-100">
 
                     <div class="flex flex-col md:flex-row gap-8">
@@ -290,6 +275,15 @@
 
                 if (!fileInput.files.length) {
                     alert('Please select a file');
+                    return;
+                }
+
+                const file = fileInput.files[0];
+                const maxSize = 5 * 1024 * 1024; // 5MB
+
+                if (file.size > maxSize) {
+                    errorMessage.innerHTML = `<span class="font-bold">Error:</span> File is too large. Maximum size is 5MB.`;
+                    errorMessage.classList.remove('hidden');
                     return;
                 }
 
