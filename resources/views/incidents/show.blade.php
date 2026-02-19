@@ -1,136 +1,116 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex items-center gap-4">
-            <a href="{{ route('incidents.index') }}" class="text-slate-400 hover:text-white transition-colors">
-                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                </svg>
-            </a>
-            <h2 class="font-semibold text-xl text-white leading-tight">
-                {{ __('Incident Details') }}
-            </h2>
-        </div>
+        <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
+            {{ __('Incident Details') }}
+        </h2>
     </x-slot>
 
-    <div class="py-12 flex-1 flex flex-col">
-        <div class="w-full px-4 sm:px-6 lg:px-8 flex-1 flex flex-col space-y-6">
+    <div class="py-12">
+        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
 
-            <!-- Main Content Grid -->
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            @if(session('success'))
+                <div class="mb-6 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative"
+                    role="alert">
+                    <span class="block sm:inline">{{ session('success') }}</span>
+                </div>
+            @endif
 
-                <!-- Details Column (Left - 2/3) -->
-                <div class="lg:col-span-2 space-y-6">
-                    <!-- Incident Header Card -->
-                    <div class="bg-[#1e293b] overflow-hidden shadow-sm rounded-lg border border-white/10 p-6">
-                        <div class="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-6">
-                            <div>
-                                <div class="flex items-center gap-3 mb-2">
-                                    @php
-                                        $severityColor = match ($incident->severity) {
-                                            'critical' => 'text-red-400 bg-red-400/10 border-red-400/20',
-                                            'warning' => 'text-amber-400 bg-amber-400/10 border-amber-400/20',
-                                            'info' => 'text-blue-400 bg-blue-400/10 border-blue-400/20',
-                                            default => 'text-slate-400 bg-slate-400/10 border-slate-400/20'
-                                        };
-                                        $statusColor = match ($incident->status) {
-                                            'open' => 'text-red-400 bg-red-400/10 border-red-400/20',
-                                            'investigating' => 'text-amber-400 bg-amber-400/10 border-amber-400/20',
-                                            'resolved' => 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20',
-                                            default => 'text-slate-400 bg-slate-400/10 border-slate-400/20'
-                                        };
-                                    @endphp
-                                    <span
-                                        class="px-2.5 py-0.5 rounded-full text-xs font-bold border uppercase tracking-wide {{ $severityColor }}">
-                                        {{ $incident->severity }}
-                                    </span>
-                                    <span
-                                        class="px-2.5 py-0.5 rounded-full text-xs font-bold border uppercase tracking-wide {{ $statusColor }}">
-                                        {{ $incident->status }}
-                                    </span>
-                                </div>
-                                <h1 class="text-2xl font-bold text-white mb-2">{{ $incident->title }}</h1>
-                                <div class="flex items-center text-sm text-slate-400">
-                                    <span>Affecting</span>
-                                    <a href="{{ route('stores.show', $incident->store) }}"
-                                        class="ml-1 text-purple-400 hover:text-purple-300 font-medium transition-colors">
-                                        {{ $incident->store->name }}
-                                    </a>
-                                    <span class="mx-2">&bull;</span>
-                                    <span>reported {{ $incident->created_at->diffForHumans() }}</span>
-                                </div>
-                            </div>
-                        </div>
+            <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
+                <div class="p-6 text-gray-900 dark:text-gray-100">
 
-                        <div class="prose prose-invert max-w-none">
-                            <h3 class="text-slate-200 font-semibold mb-2">Description</h3>
-                            <p class="text-slate-300 leading-relaxed">
-                                {{ $incident->description ?? 'No description provided.' }}
+                    <div class="flex justify-between items-start mb-6">
+                        <div>
+                            <h3 class="text-2xl font-bold">{{ $incident->title }}</h3>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                Reported {{ $incident->created_at->format('F j, Y g:i A') }}
+                                ({{ $incident->created_at->diffForHumans() }})
                             </p>
                         </div>
+                        <div class="flex space-x-2">
+                            @php
+                                $severityColors = [
+                                    'critical' => 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
+                                    'major' => 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300',
+                                    'minor' => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
+                                    'maintenance' => 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
+                                ];
+                                $color = $severityColors[$incident->severity] ?? 'bg-gray-100 text-gray-800';
+
+                                $statusColors = [
+                                    'open' => 'bg-red-100 text-red-800',
+                                    'investigating' => 'bg-purple-100 text-purple-800',
+                                    'identified' => 'bg-yellow-100 text-yellow-800',
+                                    'monitoring' => 'bg-blue-100 text-blue-800',
+                                    'resolved' => 'bg-green-100 text-green-800',
+                                ];
+                                $statusColor = $statusColors[$incident->status] ?? 'bg-gray-100 text-gray-800';
+                            @endphp
+                            <span class="{{ $color }} px-3 py-1 rounded-full text-sm font-semibold uppercase">
+                                {{ $incident->severity }}
+                            </span>
+                            <span class="{{ $statusColor }} px-3 py-1 rounded-full text-sm font-semibold capitalize">
+                                {{ str_replace('_', ' ', $incident->status) }}
+                            </span>
+                        </div>
                     </div>
 
-                    <!-- Timeline / Updates (Placeholder for future) -->
-                    {{-- Future: Add timeline features here --}}
-                </div>
-
-                <!-- Actions Column (Right - 1/3) -->
-                <div class="space-y-6">
-                    <!-- Status Management -->
-                    <div class="bg-[#1e293b] overflow-hidden shadow-sm rounded-lg border border-white/10 p-6">
-                        <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Update Status</h3>
-
-                        <form method="POST" action="{{ route('incidents.update', $incident) }}">
-                            @csrf
-                            @method('PATCH')
-
-                            <div class="space-y-4">
-                                <div>
-                                    <label class="block text-sm font-medium text-slate-300 mb-2">Current Status</label>
-                                    <select name="status"
-                                        class="w-full bg-[#0f172a] border border-white/10 rounded-lg text-white text-sm focus:ring-purple-500 focus:border-purple-500 py-2.5">
-                                        <option value="open" {{ $incident->status === 'open' ? 'selected' : '' }}>Open
-                                        </option>
-                                        <option value="investigating" {{ $incident->status === 'investigating' ? 'selected' : '' }}>Investigating</option>
-                                        <option value="resolved" {{ $incident->status === 'resolved' ? 'selected' : '' }}>
-                                            Resolved</option>
-                                    </select>
-                                </div>
-
-                                <button type="submit"
-                                    class="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-2.5 rounded-lg transition-colors flex items-center justify-center">
-                                    Update Status
-                                </button>
-                            </div>
-                        </form>
+                    <div class="prose dark:prose-invert max-w-none mb-8">
+                        <h4 class="text-lg font-semibold mb-2">Description</h4>
+                        <p class="whitespace-pre-wrap">{{ $incident->description }}</p>
                     </div>
 
-                    <!-- Meta Info -->
-                    <div class="bg-[#1e293b] overflow-hidden shadow-sm rounded-lg border border-white/10 p-6">
-                        <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Metadata</h3>
-                        <dl class="space-y-3 text-sm">
-                            <div class="flex justify-between">
-                                <dt class="text-slate-500">Incident ID</dt>
-                                <dd class="text-white font-mono">#{{ $incident->id }}</dd>
-                            </div>
-                            <div class="flex justify-between">
-                                <dt class="text-slate-500">Created</dt>
-                                <dd class="text-white">{{ $incident->created_at->format('M d, Y H:i') }}</dd>
-                            </div>
+                    <div class="border-t border-gray-200 dark:border-gray-700 pt-6">
+                        <h4 class="text-lg font-semibold mb-4">Timeline</h4>
+                        <ol class="relative border-l border-gray-200 dark:border-gray-700 ml-3">
+                            <li class="mb-10 ml-6">
+                                <span
+                                    class="absolute flex items-center justify-center w-6 h-6 bg-blue-100 rounded-full -left-3 ring-8 ring-white dark:ring-gray-900 dark:bg-blue-900">
+                                    <svg class="w-2.5 h-2.5 text-blue-800 dark:text-blue-300" aria-hidden="true"
+                                        xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                                        <path
+                                            d="M20 4a2 2 0 0 0-2-2h-2V1a1 1 0 0 0-2 0v1h-3V1a1 1 0 0 0-2 0v1H6V1a1 1 0 0 0-2 0v1H2a2 2 0 0 0-2 2v2h20V4ZM0 18a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8H0v10Zm5-8h10a1 1 0 0 1 0 2H5a1 1 0 0 1 0-2Z" />
+                                    </svg>
+                                </span>
+                                <h3 class="flex items-center mb-1 text-lg font-semibold text-gray-900 dark:text-white">
+                                    Incident Reported</h3>
+                                <time
+                                    class="block mb-2 text-sm font-normal leading-none text-gray-400 dark:text-gray-500">
+                                    {{ $incident->created_at->format('F j, Y g:i A') }}
+                                </time>
+                            </li>
+
                             @if($incident->resolved_at)
-                                <div class="flex justify-between">
-                                    <dt class="text-emerald-500">Resolved</dt>
-                                    <dd class="text-white">{{ $incident->resolved_at->format('M d, Y H:i') }}</dd>
-                                </div>
-                                <div class="pt-3 mt-3 border-t border-white/5">
-                                    <dt class="text-slate-500 mb-1">Duration</dt>
-                                    <dd class="text-emerald-400 font-medium">
-                                        {{ $incident->created_at->diffForHumans($incident->resolved_at, true) }}
-                                    </dd>
-                                </div>
+                                <li class="mb-10 ml-6">
+                                    <span
+                                        class="absolute flex items-center justify-center w-6 h-6 bg-green-100 rounded-full -left-3 ring-8 ring-white dark:ring-gray-900 dark:bg-green-900">
+                                        <svg class="w-2.5 h-2.5 text-green-800 dark:text-green-300" aria-hidden="true"
+                                            xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                                            <path
+                                                d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5Zm3.707 8.207-4 4a1 1 0 0 1-1.414 0l-2-2a1 1 0 0 1 1.414-1.414L9 10.586l3.293-3.293a1 1 0 0 1 1.414 1.414Z" />
+                                        </svg>
+                                    </span>
+                                    <h3 class="flex items-center mb-1 text-lg font-semibold text-gray-900 dark:text-white">
+                                        Resolved</h3>
+                                    <time
+                                        class="block mb-2 text-sm font-normal leading-none text-gray-400 dark:text-gray-500">
+                                        {{ $incident->resolved_at->format('F j, Y g:i A') }}
+                                    </time>
+                                </li>
                             @endif
-                        </dl>
+                        </ol>
                     </div>
+
+                    <div class="mt-8 flex space-x-4">
+                        <a href="{{ route('incidents.edit', $incident) }}"
+                            class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800">
+                            Edit Incident
+                        </a>
+                        <a href="{{ route('incidents.index') }}"
+                            class="py-2.5 px-5 text-sm font-medium text-gray-900 focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-4 focus:ring-gray-200 dark:focus:ring-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700">
+                            Back to List
+                        </a>
+                    </div>
+
                 </div>
             </div>
         </div>

@@ -62,14 +62,16 @@
         }
 
         .glass-panel {
-            background: rgba(255, 255, 255, 0.7);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.95); /* More opaque for better readability */
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
         }
 
         .dark .glass-panel {
-            background: rgba(17, 24, 39, 0.7);
-            border: 1px solid rgba(255, 255, 255, 0.05);
+            background: rgba(17, 24, 39, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
         }
     </style>
 
@@ -308,27 +310,42 @@
                     method: 'POST',
                     body: formData,
                     headers: {
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json' // Force JSON response expectation
                     }
                 })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            displayResults(data);
-                        } else {
-                            throw new Error(data.message || 'Compression failed');
-                        }
-                    })
-                    .catch(error => {
-                        errorMessage.textContent = error.message;
-                        errorMessage.classList.remove('hidden');
-                    })
-                    .finally(() => {
-                        loading.classList.add('hidden');
-                        compressBtn.disabled = false;
-                    });
+                .then(async response => {
+                    const contentType = response.headers.get("content-type");
+                    if (contentType && contentType.indexOf("application/json") !== -1) {
+                        return response.json().then(data => {
+                            if (!response.ok) {
+                                throw new Error(data.message || 'Server Error');
+                            }
+                            return data;
+                        });
+                    } else {
+                        const text = await response.text();
+                        // Try to extract a meaningful error message from HTML if possible, or just generic
+                        console.error("Non-JSON response:", text);
+                        throw new Error("Server returned an invalid response. Check console for details.");
+                    }
+                })
+                .then(data => {
+                    if(data.success) {
+                        displayResults(data);
+                    } else {
+                        throw new Error(data.message || 'Compression failed');
+                    }
+                })
+                .catch(error => {
+                    errorMessage.innerHTML = `<span class="font-bold">Error:</span> ${error.message}`;
+                    errorMessage.classList.remove('hidden');
+                })
+                .finally(() => {
+                    loading.classList.add('hidden');
+                    compressBtn.disabled = false;
+                });
             });
-
             function displayResults(data) {
                 // Update Stats
                 document.getElementById('original-size').textContent = data.original_size;

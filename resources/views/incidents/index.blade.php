@@ -1,133 +1,121 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-white leading-tight">
-            {{ __('Incidents') }}
-        </h2>
+        <div class="flex justify-between items-center">
+            <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
+                {{ __('Incidents') }}
+            </h2>
+            <a href="{{ route('incidents.create') }}"
+                class="px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 focus:bg-blue-700 active:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150">
+                Report Incident
+            </a>
+        </div>
     </x-slot>
 
-    <div class="py-12 flex-1 flex flex-col">
-        <div class="w-full px-4 sm:px-6 lg:px-8 flex-1 flex flex-col space-y-6">
+    <div class="py-12">
+        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
 
-            <!-- Incident Stats (Optional - can be expanded later) -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="bg-[#1e293b] p-6 rounded-lg border border-white/10 shadow-sm">
-                    <div class="text-slate-400 text-sm font-medium uppercase tracking-wider mb-1">Open Incidents</div>
-                    <div class="text-3xl font-bold text-white">
-                        {{ $incidents->where('status', 'open')->count() }}
-                    </div>
+            @if(session('success'))
+                <div class="mb-6 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative"
+                    role="alert">
+                    <span class="block sm:inline">{{ session('success') }}</span>
                 </div>
-                <div class="bg-[#1e293b] p-6 rounded-lg border border-white/10 shadow-sm">
-                    <div class="text-slate-400 text-sm font-medium uppercase tracking-wider mb-1">Investigating</div>
-                    <div class="text-3xl font-bold text-white">
-                        {{ $incidents->where('status', 'investigating')->count() }}
-                    </div>
-                </div>
-                <div class="bg-[#1e293b] p-6 rounded-lg border border-white/10 shadow-sm">
-                    <div class="text-slate-400 text-sm font-medium uppercase tracking-wider mb-1">Resolved (Last 30
-                        Days)</div>
-                    <div class="text-3xl font-bold text-white">
-                        {{ $incidents->where('status', 'resolved')->count() }}
-                    </div>
-                </div>
-            </div>
+            @endif
 
-            <!-- Incidents List -->
-            <div class="bg-[#1e293b] overflow-hidden shadow-sm rounded-lg border border-white/10 flex flex-col flex-1">
-                @if($incidents->count() > 0)
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left text-sm text-slate-400">
-                            <thead class="bg-slate-900/50 text-slate-200 uppercase font-medium border-b border-white/5">
-                                <tr>
-                                    <th class="px-6 py-4">Status</th>
-                                    <th class="px-6 py-4">Severity</th>
-                                    <th class="px-6 py-4 w-full">Incident</th>
-                                    <th class="px-6 py-4 text-right">Time</th>
-                                    <th class="px-6 py-4"></th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-white/5">
-                                @foreach($incidents as $incident)
-                                                <tr class="hover:bg-white/5 transition-colors group">
-                                                    <td class="px-6 py-4 whitespace-nowrap">
-                                                        @php
-                                                            $statusClasses = match ($incident->status) {
-                                                                'open' => 'bg-red-500/10 text-red-500 border border-red-500/20',
-                                                                'investigating' => 'bg-amber-500/10 text-amber-500 border border-amber-500/20',
-                                                                'resolved' => 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20',
-                                                                default => 'bg-slate-500/10 text-slate-500 border border-slate-500/20'
-                                                            };
-                                                        @endphp
-                                    <span
-                                                            class="px-2.5 py-1 rounded-full text-xs font-medium uppercase tracking-wide {{ $statusClasses }}">
-                                                            {{ $incident->status }}
-                                                        </span>
-                                                    </td>
-                                                    <td class="px-6 py-4 whitespace-nowrap">
-                                                        @php
-                                                            $severityColor = match ($incident->severity) {
-                                                                'critical' => 'text-red-400',
-                                                                'warning' => 'text-amber-400',
-                                                                'info' => 'text-blue-400',
-                                                                default => 'text-slate-400'
-                                                            };
-                                                            $severityIcon = match ($incident->severity) {
-                                                                'critical' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />',
-                                                                'warning' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />',
-                                                                default => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />'
-                                                            };
-                                                        @endphp
-                                                        <div class="flex items-center gap-2 {{ $severityColor }}">
-                                                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                                {!! $severityIcon !!}
-                                                            </svg>
-                                                            <span class="font-medium capitalize">{{ $incident->severity }}</span>
-                                                        </div>
-                                                    </td>
-                                                    <td class="px-6 py-4">
-                                                        <div class="flex flex-col">
-                                                            <span
-                                                                class="text-white font-medium text-base mb-1">{{ $incident->title }}</span>
-                                                            <span class="text-slate-500 text-xs">
-                                                                {{ $incident->store->name ?? 'Unknown Store' }} &bull;
-                                                                {{ Str::limit($incident->description, 80) }}
-                                                            </span>
-                                                        </div>
-                                                    </td>
-                                                    <td class="px-6 py-4 whitespace-nowrap text-right text-xs">
-                                                        <div class="flex flex-col gap-1">
-                                                            <span class="text-slate-300">{{ $incident->created_at->diffForHumans() }}</span>
-                                                            <span
-                                                                class="text-slate-600">{{ $incident->created_at->format('M d, H:i') }}</span>
-                                                        </div>
-                                                    </td>
-                                                    <td class="px-6 py-4 text-right">
-                                                        <a href="{{ route('incidents.show', $incident) }}"
-                                                            class="text-purple-400 hover:text-white transition-colors p-2 rounded-lg hover:bg-white/5 inline-flex">
-                                                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                                    d="M9 5l7 7-7 7" />
-                                                            </svg>
-                                                        </a>
-                                                    </td>
-                                                </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                @else
-                    <div class="flex-1 flex flex-col items-center justify-center p-12 text-center">
-                        <div
-                            class="w-20 h-20 rounded-full bg-emerald-500/10 flex items-center justify-center mb-6 ring-1 ring-emerald-500/20">
-                            <svg class="w-10 h-10 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
+            <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
+                <div class="p-6 text-gray-900 dark:text-gray-100">
+
+                    @if($incidents->count() > 0)
+                        <div class="relative overflow-x-auto">
+                            <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                                <thead
+                                    class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                                    <tr>
+                                        <th scope="col" class="px-6 py-3">Title</th>
+                                        <th scope="col" class="px-6 py-3">Severity</th>
+                                        <th scope="col" class="px-6 py-3">Status</th>
+                                        <th scope="col" class="px-6 py-3">Reported At</th>
+                                        <th scope="col" class="px-6 py-3 text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($incidents as $incident)
+                                        <tr
+                                            class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                                            <th scope="row"
+                                                class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                                                <a href="{{ route('incidents.show', $incident) }}"
+                                                    class="hover:underline hover:text-blue-500">
+                                                    {{ $incident->title }}
+                                                </a>
+                                            </th>
+                                            <td class="px-6 py-4">
+                                                @php
+                                                    $severityColors = [
+                                                        'critical' => 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
+                                                        'major' => 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300',
+                                                        'minor' => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
+                                                        'maintenance' => 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
+                                                    ];
+                                                    $color = $severityColors[$incident->severity] ?? 'bg-gray-100 text-gray-800';
+                                                @endphp
+                                                <span
+                                                    class="{{ $color }} text-xs font-medium mr-2 px-2.5 py-0.5 rounded uppercase">
+                                                    {{ $incident->severity }}
+                                                </span>
+                                            </td>
+                                            <td class="px-6 py-4">
+                                                @php
+                                                    $statusColors = [
+                                                        'open' => 'bg-red-100 text-red-800',
+                                                        'investigating' => 'bg-purple-100 text-purple-800',
+                                                        'identified' => 'bg-yellow-100 text-yellow-800',
+                                                        'monitoring' => 'bg-blue-100 text-blue-800',
+                                                        'resolved' => 'bg-green-100 text-green-800',
+                                                    ];
+                                                    $statusColor = $statusColors[$incident->status] ?? 'bg-gray-100 text-gray-800';
+                                                @endphp
+                                                <span
+                                                    class="{{ $statusColor }} text-xs font-medium mr-2 px-2.5 py-0.5 rounded capitalize">
+                                                    {{ str_replace('_', ' ', $incident->status) }}
+                                                </span>
+                                            </td>
+                                            <td class="px-6 py-4">
+                                                {{ $incident->created_at->diffForHumans() }}
+                                            </td>
+                                            <td class="px-6 py-4 text-right space-x-2">
+                                                <a href="{{ route('incidents.edit', $incident) }}"
+                                                    class="font-medium text-blue-600 dark:text-blue-500 hover:underline">Edit</a>
+
+                                                <form action="{{ route('incidents.destroy', $incident) }}" method="POST"
+                                                    class="inline-block"
+                                                    onsubmit="return confirm('Are you sure you want to delete this incident?');">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit"
+                                                        class="font-medium text-red-600 dark:text-red-500 hover:underline">Delete</button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
                         </div>
-                        <h3 class="text-xl font-bold text-white mb-2">System Healthy</h3>
-                        <p class="text-slate-400 max-w-sm mx-auto">No open incidents found. Your stores are running
-                            smoothly.</p>
-                    </div>
-                @endif
+                    @else
+                        <div class="text-center py-10">
+                            <div
+                                class="bg-gray-100 dark:bg-gray-700 rounded-full h-20 w-20 flex items-center justify-center mx-auto mb-4">
+                                <svg class="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                            </div>
+                            <h3 class="text-lg font-medium text-gray-900 dark:text-white">No incidents reported</h3>
+                            <p class="mt-1 text-gray-500 dark:text-gray-400">Everything is running smoothly! Use the button
+                                above to report an issue if one arises.</p>
+                        </div>
+                    @endif
+
+                </div>
             </div>
         </div>
     </div>

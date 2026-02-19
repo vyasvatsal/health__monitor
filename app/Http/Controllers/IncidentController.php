@@ -27,7 +27,7 @@ class IncidentController extends Controller
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'required|string',
-            'status' => 'required|in:investigating,identified,monitoring,resolved',
+            'status' => 'required|in:open,investigating,identified,monitoring,resolved',
             'severity' => 'required|in:critical,major,minor,maintenance',
         ]);
 
@@ -39,10 +39,10 @@ class IncidentController extends Controller
             'description' => $validated['description'],
             'status' => $validated['status'],
             'severity' => $validated['severity'],
-            'occurred_at' => now(),
+            // 'occurred_at' => now(), // managed by timestamps or separate column if needed
         ]);
 
-        return redirect()->route('dashboard')->with('success', 'Incident reported successfully.');
+        return redirect()->route('incidents.index')->with('success', 'Incident reported successfully.');
     }
 
     public function show(Incident $incident)
@@ -53,23 +53,48 @@ class IncidentController extends Controller
         return view('incidents.show', compact('incident'));
     }
 
+    public function edit(Incident $incident)
+    {
+        if ($incident->store->user_id !== auth()->id()) {
+            abort(403);
+        }
+        return view('incidents.edit', compact('incident'));
+    }
+
     public function update(Request $request, Incident $incident)
     {
         if ($incident->store->user_id !== auth()->id()) {
             abort(403);
         }
 
-        $request->validate([
-            'status' => 'required|in:open,investigating,resolved',
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'description' => 'required|string',
+            'status' => 'required|in:open,investigating,identified,monitoring,resolved',
+            'severity' => 'required|in:critical,major,minor,maintenance',
         ]);
 
-        $data = ['status' => $request->status];
-        if ($request->status === 'resolved') {
+        $data = $validated;
+
+        if ($request->status === 'resolved' && $incident->status !== 'resolved') {
             $data['resolved_at'] = now();
+        } elseif ($request->status !== 'resolved') {
+            $data['resolved_at'] = null; // Un-resolve if status changes back
         }
 
         $incident->update($data);
 
-        return redirect()->route('incidents.show', $incident)->with('success', 'Incident updated.');
+        return redirect()->route('incidents.index')->with('success', 'Incident updated successfully.');
+    }
+
+    public function destroy(Incident $incident)
+    {
+        if ($incident->store->user_id !== auth()->id()) {
+            abort(403);
+        }
+
+        $incident->delete();
+
+        return redirect()->route('incidents.index')->with('success', 'Incident deleted successfully.');
     }
 }
