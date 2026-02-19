@@ -694,12 +694,12 @@
                 issues: [
                     @if(($revenueLoss['excess_ms'] ?? 0) > 0) 'High Latency ({{ $revenueLoss['excess_ms'] ?? 0 }}ms excess)', @endif
                     @if(($errorRate ?? 0) > 0.01) 'Elevated Error Rate', @endif
-                                    ],
+                                        ],
                 recent_alerts: @json($recentAlerts->pluck('title')->take(5))
             };
 
             // Call API
-            fetch('{{ url('/api/v1/ai/analyze') }}', {
+            fetch('{{ route('ai.analyze') }}', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
