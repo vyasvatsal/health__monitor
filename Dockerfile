@@ -16,6 +16,10 @@ RUN apt-get update && apt-get install -y \
  
 # Install PHP extensions
 RUN docker-php-ext-install pdo_pgsql mbstring exif pcntl bcmath gd intl zip
+
+# Configure PHP Upload Limits
+RUN echo "upload_max_filesize = 10M" > /usr/local/etc/php/conf.d/uploads.ini \
+    && echo "post_max_size = 10M" >> /usr/local/etc/php/conf.d/uploads.ini
  
 # Install Node.js (Current Stable)
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \

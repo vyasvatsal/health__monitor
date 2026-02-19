@@ -1,4 +1,5 @@
 <x-app-layout>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
             {{ __('Image Compression Tool') }}
@@ -98,7 +99,7 @@
                                             <p class="mb-2 text-sm text-gray-500 dark:text-gray-400"><span
                                                     class="font-semibold">Click to upload</span> or drag and drop</p>
                                             <p class="text-xs text-gray-500 dark:text-gray-400">SVG, PNG, JPG or GIF
-                                                (MAX. 5MB)</p>
+                                                (MAX. 10MB)</p>
                                             <p id="file-name"
                                                 class="mt-2 text-sm text-blue-500 font-medium truncate max-w-[200px]">
                                             </p>
@@ -249,26 +250,62 @@
             const comparisonLabels = document.getElementById('comparison-labels');
             const imgBefore = document.getElementById('img-before');
             const imgAfter = document.getElementById('img-after');
+            const dropZone = fileInput.closest('label');
 
             // Quality slider
             qualityInput.addEventListener('input', function () {
                 qualityValue.textContent = this.value;
             });
 
+            // Drag and Drop Effects
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, preventDefaults, false);
+            });
+
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropZone.addEventListener(eventName, highlight, false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, unhighlight, false);
+            });
+
+            function highlight(e) {
+                dropZone.classList.add('border-blue-500', 'bg-blue-50', 'dark:bg-gray-700');
+            }
+
+            function unhighlight(e) {
+                dropZone.classList.remove('border-blue-500', 'bg-blue-50', 'dark:bg-gray-700');
+            }
+
+            dropZone.addEventListener('drop', handleDrop, false);
+
+            function handleDrop(e) {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                fileInput.files = files;
+                handleFiles(files);
+            }
+
             // File selection
             fileInput.addEventListener('change', function () {
-                if (this.files && this.files[0]) {
-                    const file = this.files[0];
+                handleFiles(this.files);
+            });
+
+            function handleFiles(files) {
+                if (files && files[0]) {
+                    const file = files[0];
                     fileNameDisplay.textContent = file.name;
 
-                    // Create preview of original
                     if (originalFileUrl) URL.revokeObjectURL(originalFileUrl);
                     originalFileUrl = URL.createObjectURL(file);
-
-                    // Show preview immediately? Or wait for compress?
-                    // Let's just show filename for now to keep it clean.
                 }
-            });
+            }
 
             form.addEventListener('submit', function (e) {
                 e.preventDefault();
@@ -279,10 +316,10 @@
                 }
 
                 const file = fileInput.files[0];
-                const maxSize = 5 * 1024 * 1024; // 5MB
+                const maxSize = 10 * 1024 * 1024; // 10MB
 
                 if (file.size > maxSize) {
-                    errorMessage.innerHTML = `<span class="font-bold">Error:</span> File is too large. Maximum size is 5MB.`;
+                    errorMessage.innerHTML = `<span class="font-bold">Error:</span> File is too large. Maximum size is 10MB.`;
                     errorMessage.classList.remove('hidden');
                     return;
                 }
@@ -308,37 +345,37 @@
                         'Accept': 'application/json' // Force JSON response expectation
                     }
                 })
-                .then(async response => {
-                    const contentType = response.headers.get("content-type");
-                    if (contentType && contentType.indexOf("application/json") !== -1) {
-                        return response.json().then(data => {
-                            if (!response.ok) {
-                                throw new Error(data.message || 'Server Error');
-                            }
-                            return data;
-                        });
-                    } else {
-                        const text = await response.text();
-                        // Try to extract a meaningful error message from HTML if possible, or just generic
-                        console.error("Non-JSON response:", text);
-                        throw new Error("Server returned an invalid response. Check console for details.");
-                    }
-                })
-                .then(data => {
-                    if(data.success) {
-                        displayResults(data);
-                    } else {
-                        throw new Error(data.message || 'Compression failed');
-                    }
-                })
-                .catch(error => {
-                    errorMessage.innerHTML = `<span class="font-bold">Error:</span> ${error.message}`;
-                    errorMessage.classList.remove('hidden');
-                })
-                .finally(() => {
-                    loading.classList.add('hidden');
-                    compressBtn.disabled = false;
-                });
+                    .then(async response => {
+                        const contentType = response.headers.get("content-type");
+                        if (contentType && contentType.indexOf("application/json") !== -1) {
+                            return response.json().then(data => {
+                                if (!response.ok) {
+                                    throw new Error(data.message || 'Server Error');
+                                }
+                                return data;
+                            });
+                        } else {
+                            const text = await response.text();
+                            // Try to extract a meaningful error message from HTML if possible, or just generic
+                            console.error("Non-JSON response:", text);
+                            throw new Error("Server returned an invalid response. Check console for details.");
+                        }
+                    })
+                    .then(data => {
+                        if (data.success) {
+                            displayResults(data);
+                        } else {
+                            throw new Error(data.message || 'Compression failed');
+                        }
+                    })
+                    .catch(error => {
+                        errorMessage.innerHTML = `<span class="font-bold">Error:</span> ${error.message}`;
+                        errorMessage.classList.remove('hidden');
+                    })
+                    .finally(() => {
+                        loading.classList.add('hidden');
+                        compressBtn.disabled = false;
+                    });
             });
             function displayResults(data) {
                 // Update Stats
@@ -365,6 +402,12 @@
                 imgAfter.onload = function () {
                     initComparisons();
                     comparisonLabels.classList.add('opacity-100');
+                    // Confetti!
+                    confetti({
+                        particleCount: 100,
+                        spread: 70,
+                        origin: { y: 0.6 }
+                    });
                 };
             }
 
