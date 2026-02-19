@@ -97,4 +97,38 @@ class GroqProvider implements LLMProviderInterface
             throw $e;
         }
     }
+    public function checkHealth(): array
+    {
+        $start = microtime(true);
+        try {
+            // minimal request to check connectivity
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $this->apiKey,
+                'Content-Type' => 'application/json',
+            ])->timeout(5)->get($this->baseUrl . '/models');
+
+            $latency = round((microtime(true) - $start) * 1000);
+
+            if ($response->successful()) {
+                return [
+                    'status' => 'ok',
+                    'latency' => $latency,
+                    'message' => 'Operational'
+                ];
+            }
+
+            return [
+                'status' => 'error',
+                'latency' => $latency,
+                'message' => 'API Error: ' . $response->status()
+            ];
+
+        } catch (\Exception $e) {
+            return [
+                'status' => 'error',
+                'latency' => 0,
+                'message' => 'Connection Failed: ' . $e->getMessage()
+            ];
+        }
+    }
 }

@@ -278,8 +278,50 @@
                 </div>
             </div>
 
+
+
             <!-- AI Insights Row -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <!-- AI Status Card -->
+                <div
+                    class="bg-[#1e293b] overflow-hidden shadow-sm rounded-lg border border-white/10 hover:border-white/20 transition-all duration-300">
+                    <div class="p-5">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <div class="p-2 rounded-lg bg-indigo-500/10 text-indigo-400">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 class="text-white font-bold">AI Service Status</h3>
+                                    <p class="text-slate-400 text-xs">Groq LLM Engine</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                @if(($aiHealth['status'] ?? 'error') === 'ok')
+                                    <div
+                                        class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+                                        <span class="relative flex h-2 w-2">
+                                            <span
+                                                class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                            <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                                        </span>
+                                        <span class="text-xs font-medium text-emerald-400">Operational</span>
+                                    </div>
+                                    <span class="text-[10px] text-slate-500 font-mono">{{ $aiHealth['latency'] ?? 0 }}ms</span>
+                                @else
+                                    <div
+                                        class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-500/10 border border-red-500/20">
+                                        <span class="h-2 w-2 rounded-full bg-red-500"></span>
+                                        <span class="text-xs font-medium text-red-400">Offline</span>
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 <!-- Financial Impact -->
                 <div
                     class="bg-[#1e293b] overflow-hidden shadow-sm rounded-lg border border-white/10 hover:border-white/20 transition-all duration-300">
@@ -696,7 +738,7 @@
                 issues: [
                     @if(($revenueLoss['excess_ms'] ?? 0) > 0) 'High Latency ({{ $revenueLoss['excess_ms'] ?? 0 }}ms excess)', @endif
                     @if(($errorRate ?? 0) > 0.01) 'Elevated Error Rate', @endif
-                                            ],
+                                                        ],
                 recent_alerts: @json($recentAlerts->pluck('title')->take(5))
             };
 

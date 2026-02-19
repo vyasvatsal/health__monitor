@@ -145,22 +145,32 @@ class DashboardController extends Controller
 
         $activeUsers = $latestActiveUserCheck ? ($latestActiveUserCheck->payload['active_users'] ?? 0) : 0;
 
+        // 11. AI Service Health Check (New)
+        $aiHealth = \Illuminate\Support\Facades\Cache::remember('ai_service_health', 300, function () {
+            try {
+                return app('ai')->driver()->checkHealth();
+            } catch (\Exception $e) {
+                return ['status' => 'error', 'message' => $e->getMessage(), 'latency' => 0];
+            }
+        });
+
         return view('dashboard', [
             'totalRequests' => number_format($totalRequests),
             'avgLatency' => $avgLatency,
             'errorRate' => $errorRate,
             'activeNodes' => $activeNodes,
-            'activeUsers' => $activeUsers, // New Variable
+            'activeUsers' => $activeUsers,
             'components' => $components,
             'recentAlerts' => $recentAlerts,
             'healthScore' => $healthScore,
-            'chartData' => $normalizedChart, // Now using real history
+            'chartData' => $normalizedChart,
             'revenueLoss' => $revenueLoss,
             'slowestRoute' => $slowestRoute,
             'securityResult' => $securityResult,
             'uptime30d' => round($uptime30d, 2),
             'allStores' => $allStores,
             'currentStore' => $store,
+            'aiHealth' => $aiHealth, // Pass AI Health Status
         ]);
     }
 }
