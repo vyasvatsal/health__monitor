@@ -43,22 +43,7 @@ class AIHealthController extends Controller
                 ['role' => 'user', 'content' => $promptContext],
             ]);
 
-            $responseContent = $response['content'];
 
-            // DEBUG: If empty, provide diagnostic info
-            if (empty($responseContent)) {
-                $config = config('ai.drivers.groq');
-                $key = $config['api_key'] ?? 'NULL';
-                $maskedKey = substr($key, 0, 5) . '...' . substr($key, -4);
-                $model = $config['model'] ?? 'N/A';
-
-                $responseContent = "**Debug Diagnosis:**\n";
-                $responseContent .= "- **Status:** 200 OK (Empty Content)\n";
-                $responseContent .= "- **Key:** `{$maskedKey}`\n";
-                $responseContent .= "- **Model:** `{$model}`\n";
-                $responseContent .= "- **Provider:** Groq\n";
-                $responseContent .= "- **Raw Response:** " . json_encode($response);
-            }
 
             return response()->json([
                 'status' => 'success',
