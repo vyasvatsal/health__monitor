@@ -17,8 +17,14 @@ class AIManager extends Manager
     {
         $config = $this->config->get('ai.drivers.groq');
 
+        $apiKey = $config['api_key'] ?? null;
+
+        if (empty($apiKey)) {
+            throw new \RuntimeException('Groq API Key is not configured. Please set GROQ_API_KEY in your .env file or environment variables.');
+        }
+
         return new GroqProvider(
-            $config['api_key'],
+            $apiKey,
             $config['model'] ?? AIModel::default()->value
         );
     }
