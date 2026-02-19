@@ -58,7 +58,7 @@ class AIChatController extends Controller
                 'reply' => $response['content']
             ]);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             Log::error("AI Chat Failed: " . $e->getMessage());
             return response()->json([
                 'error' => 'AI Service Unavailable: ' . $e->getMessage()
