@@ -16,6 +16,7 @@ class HealthScore extends Model
         'metric_availability' => 'float',
         'metric_performance' => 'float',
         'metric_incidents' => 'float',
+        'metrics_json' => 'array',
     ];
 
     public function store()

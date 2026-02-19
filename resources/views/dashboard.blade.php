@@ -166,7 +166,9 @@
                         <!-- Breakdown -->
                         <div class="mt-3 grid grid-cols-2 gap-2 text-[10px]">
                             @php
-                                $metrics = json_decode(optional($healthScore)->metrics_json ?? '{}', true);
+                                $metrics = optional($healthScore)->metrics_json ?? [];
+                                if (is_string($metrics))
+                                    $metrics = json_decode($metrics, true); // Fallback for old records
                             @endphp
                             @foreach(['performance' => 'Perf', 'ux' => 'UX', 'conversion' => 'Conv', 'trust' => 'Trust'] as $key => $label)
                                 <div class="flex flex-col">
@@ -694,7 +696,7 @@
                 issues: [
                     @if(($revenueLoss['excess_ms'] ?? 0) > 0) 'High Latency ({{ $revenueLoss['excess_ms'] ?? 0 }}ms excess)', @endif
                     @if(($errorRate ?? 0) > 0.01) 'Elevated Error Rate', @endif
-                                        ],
+                                            ],
                 recent_alerts: @json($recentAlerts->pluck('title')->take(5))
             };
 
