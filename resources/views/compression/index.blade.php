@@ -87,6 +87,29 @@
         .img-comp-slider:active {
             transform: translate(-50%, -50%) scale(0.95);
         }
+
+        /* Side-by-Side Mode */
+        .img-comp-container.side-by-side {
+            display: flex;
+            flex-direction: row-reverse;
+            gap: 1rem;
+            padding: 1rem;
+            cursor: default;
+        }
+
+        .img-comp-container.side-by-side .img-comp-img {
+            position: relative;
+            flex: 1;
+            height: 100%;
+        }
+
+        .img-comp-container.side-by-side .img-comp-overlay {
+            clip-path: none !important;
+        }
+
+        .img-comp-container.side-by-side .img-comp-slider {
+            display: none !important;
+        }
     </style>
 
     <div class="py-12">
@@ -209,9 +232,17 @@
                         </div>
 
                         <!-- Right Panel: Comparison View -->
-                        <div class="w-full md:w-2/3">
+                        <div class="w-full md:w-2/3 flex flex-col">
+
+                            <div id="view-toggles" class="hidden flex justify-end gap-2 mb-4">
+                                <button type="button" id="btn-view-slider"
+                                    class="px-4 py-1.5 text-sm font-medium rounded-lg bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400 transition-colors shadow-sm ring-1 ring-blue-500/20">Slider</button>
+                                <button type="button" id="btn-view-side"
+                                    class="px-4 py-1.5 text-sm font-medium rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 transition-colors">Side-by-side</button>
+                            </div>
+
                             <div
-                                class="bg-gray-100 dark:bg-gray-900/50 rounded-2xl h-[500px] flex items-center justify-center border border-gray-200 dark:border-gray-700 relative overflow-hidden group">
+                                class="bg-gray-100 dark:bg-gray-900/50 rounded-2xl h-[500px] flex-1 flex items-center justify-center border border-gray-200 dark:border-gray-700 relative overflow-hidden group">
 
                                 <!-- Placeholder State -->
                                 <div id="placeholder-state" class="text-center p-8 transition-opacity duration-300">
@@ -279,6 +310,44 @@
             const imgBefore = document.getElementById('img-before');
             const imgAfter = document.getElementById('img-after');
             const dropZone = fileInput.closest('label');
+            const viewToggles = document.getElementById('view-toggles');
+            const btnViewSlider = document.getElementById('btn-view-slider');
+            const btnViewSide = document.getElementById('btn-view-side');
+
+            // View Toggles logic
+            btnViewSlider.addEventListener('click', () => {
+                comparisonContainer.classList.remove('side-by-side');
+
+                // Update button styles
+                btnViewSlider.classList.replace('bg-gray-100', 'bg-blue-100');
+                btnViewSlider.classList.replace('text-gray-600', 'text-blue-700');
+                btnViewSlider.classList.replace('dark:bg-gray-800', 'dark:bg-blue-900/40');
+                btnViewSlider.classList.replace('dark:text-gray-400', 'dark:text-blue-400');
+                btnViewSlider.classList.add('shadow-sm', 'ring-1', 'ring-blue-500/20');
+
+                btnViewSide.classList.replace('bg-blue-100', 'bg-gray-100');
+                btnViewSide.classList.replace('text-blue-700', 'text-gray-600');
+                btnViewSide.classList.replace('dark:bg-blue-900/40', 'dark:bg-gray-800');
+                btnViewSide.classList.replace('dark:text-blue-400', 'dark:text-gray-400');
+                btnViewSide.classList.remove('shadow-sm', 'ring-1', 'ring-blue-500/20');
+            });
+
+            btnViewSide.addEventListener('click', () => {
+                comparisonContainer.classList.add('side-by-side');
+
+                // Update button styles
+                btnViewSide.classList.replace('bg-gray-100', 'bg-blue-100');
+                btnViewSide.classList.replace('text-gray-600', 'text-blue-700');
+                btnViewSide.classList.replace('dark:bg-gray-800', 'dark:bg-blue-900/40');
+                btnViewSide.classList.replace('dark:text-gray-400', 'dark:text-blue-400');
+                btnViewSide.classList.add('shadow-sm', 'ring-1', 'ring-blue-500/20');
+
+                btnViewSlider.classList.replace('bg-blue-100', 'bg-gray-100');
+                btnViewSlider.classList.replace('text-blue-700', 'text-gray-600');
+                btnViewSlider.classList.replace('dark:bg-blue-900/40', 'dark:bg-gray-800');
+                btnViewSlider.classList.replace('dark:text-blue-400', 'dark:text-gray-400');
+                btnViewSlider.classList.remove('shadow-sm', 'ring-1', 'ring-blue-500/20');
+            });
 
             // Quality slider
             qualityInput.addEventListener('input', function () {
@@ -364,6 +433,7 @@
                 comparisonContainer.classList.add('hidden');
                 placeholderState.classList.remove('hidden');
                 comparisonLabels.classList.remove('opacity-100');
+                viewToggles.classList.add('hidden');
 
                 fetch('{{ route('tools.compression.run') }}', {
                     method: 'POST',
@@ -425,6 +495,7 @@
                 statsCard.classList.remove('hidden');
                 placeholderState.classList.add('hidden');
                 comparisonContainer.classList.remove('hidden');
+                viewToggles.classList.remove('hidden'); // Show view toggles
 
                 // Initialize Comparison Slider when images load
                 imgAfter.onload = function () {
