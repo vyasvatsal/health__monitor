@@ -9,6 +9,7 @@ use App\Models\ErrorGroup;
 use App\Models\ErrorEvent;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use App\Jobs\AnalyzeErrorJob;
 
 class ErrorTrackingController extends Controller
 {
@@ -104,7 +105,11 @@ class ErrorTrackingController extends Controller
             'occurred_at' => now(),
         ]);
 
-        // 6. Trigger AI Analysis - REMOVED
+        // 6. Trigger AI Analysis for new errors or occasionally
+        // If it's a new error group (count was 0 before incrementing), dispatch AI task
+        if ($errorGroup->count == 1 || is_null($errorGroup->ai_solution)) {
+            AnalyzeErrorJob::dispatch($errorGroup)->afterCommit();
+        }
 
         return response()->json([
             'status' => 'success',
