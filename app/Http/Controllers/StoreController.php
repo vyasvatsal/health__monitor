@@ -44,6 +44,8 @@ class StoreController extends Controller
             'name' => $request->name,
             'domain' => $request->domain,
             'api_key' => 'live_sk_' . Str::random(24),
+            'public_key' => 'pk_' . Str::random(24),
+            'secret_key' => 'sk_' . Str::random(32),
             'tier' => 'basic',
         ]);
 
