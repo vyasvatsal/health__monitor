@@ -163,13 +163,13 @@
                                 onclick="navigator.clipboard.writeText(this.parentElement.innerText.trim())"><i
                                     class="material-icons text-sm">content_copy</i></button>
                             <pre class="text-xs text-slate-300 font-mono overflow-x-auto p-2">
-        &lt;script src="{{ asset('js/monitor-client.js') }}"&gt;&lt;/script&gt;
-        &lt;script&gt;
-            HealthMonitor.init({
-                endpoint: '{{ route('api.capture', ['store_id' => $store->id]) }}',
-                publicKey: '{{ $store->public_key }}'
-            });
-        &lt;/script&gt;</pre>
+            &lt;script src="{{ asset('js/monitor-client.js') }}"&gt;&lt;/script&gt;
+            &lt;script&gt;
+                HealthMonitor.init({
+                    endpoint: '{{ url('/api/v1/track') }}',
+                    publicKey: '{{ $store->public_key }}'
+                });
+            &lt;/script&gt;</pre>
                         </div>
                     </div>
 
@@ -182,26 +182,26 @@
                                 onclick="navigator.clipboard.writeText(this.parentElement.innerText.trim())"><i
                                     class="material-icons text-sm">content_copy</i></button>
                             <pre class="text-xs text-slate-300 font-mono overflow-x-auto p-2">
-        // In bootstrap/app.php (Laravel 11)
-        -&gt;withExceptions(function (Exceptions $exceptions) {
-            $exceptions-&gt;reportable(function (Throwable $e) {
-                \Illuminate\Support\Facades\Http::withHeaders([
-                    'X-Monitor-Key' =&gt; '{{ $store->secret_key }}'
-                ])-&gt;post('{{ route('api.capture', ['store_id' => $store->id]) }}', [
-                    'exception' =&gt; [
-                        'type' =&gt; get_class($e),
-                        'message' =&gt; $e-&gt;getMessage(),
-                        'file' =&gt; $e-&gt;getFile(),
-                        'line' =&gt; $e-&gt;getLine(),
-                        'trace' =&gt; $e-&gt;getTraceAsString()
-                    ],
-                    'context' =&gt; [
-                        'url' =&gt; request()-&gt;fullUrl(),
-                        'method' =&gt; request()-&gt;method(),
-                    ]
-                ]);
-            });
-        })</pre>
+            // In bootstrap/app.php (Laravel 11)
+            ->withExceptions(function (Exceptions $exceptions) {
+                $exceptions->reportable(function (Throwable $e) {
+                    \Illuminate\Support\Facades\Http::withHeaders([
+                        'X-Monitor-Key' => '{{ $store->secret_key }}'
+                    ])->post('{{ url('/api/v1/track') }}', [
+                        'exception' => [
+                            'type' => get_class($e),
+                            'message' => $e->getMessage(),
+                            'file' => $e->getFile(),
+                            'line' => $e->getLine(),
+                            'trace' => $e->getTraceAsString()
+                        ],
+                        'context' => [
+                            'url' => request()->fullUrl(),
+                            'method' => request()->method(),
+                        ]
+                    ]);
+                });
+            })</pre>
                         </div>
                     </div>
                 </div>
@@ -223,11 +223,11 @@
 
             // Reset content
             content.innerHTML = `
-                     <div class="flex flex-col items-center justify-center py-12">
-                        <div class="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-                        <span class="text-slate-400">Loading details...</span>
-                    </div>
-                `;
+                         <div class="flex flex-col items-center justify-center py-12">
+                            <div class="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+                            <span class="text-slate-400">Loading details...</span>
+                        </div>
+                    `;
 
             // Fetch details
             fetch(`{{ url('stores/' . $store->id . '/errors') }}/${groupId}`, {
