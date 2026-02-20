@@ -12,10 +12,13 @@ RUN apt-get update && apt-get install -y \
     libzip-dev \
     libpq-dev \
     libicu-dev \
+    libjpeg62-turbo-dev \
+    libfreetype6-dev \
     nginx
  
-# Install PHP extensions
-RUN docker-php-ext-install pdo_pgsql mbstring exif pcntl bcmath gd intl zip
+# Configure and Install PHP extensions
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install pdo_pgsql mbstring exif pcntl bcmath gd intl zip
 
 # Configure PHP Upload Limits
 RUN echo "upload_max_filesize = 64M" > /usr/local/etc/php/conf.d/uploads.ini \
