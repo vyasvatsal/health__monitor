@@ -1,6 +1,6 @@
 <section>
     <header>
-        <h2 class="text-lg font-medium text-white">
+        <h2 class="text-xl font-bold text-white">
             {{ __('Profile Information') }}
         </h2>
 
@@ -18,17 +18,17 @@
         @method('patch')
 
         <div>
-            <label for="name" class="block text-sm font-medium text-slate-400 mb-2">Name</label>
+            <label for="name" class="block text-sm font-medium text-slate-300 mb-2">Name</label>
             <input id="name" name="name" type="text"
-                class="w-full bg-slate-950 border border-slate-700/50 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-lg px-4 py-2.5 text-white placeholder-slate-600 transition outline-none"
+                class="w-full bg-[#0f172a] border border-slate-700 focus:border-emerald-500 focus:ring-emerald-500 rounded-lg px-4 py-2.5 text-white placeholder-slate-600 transition-colors shadow-sm"
                 :value="old('name', $user->name)" required autofocus autocomplete="name" />
             <x-input-error class="mt-2" :messages="$errors->get('name')" />
         </div>
 
         <div>
-            <label for="email" class="block text-sm font-medium text-slate-400 mb-2">Email</label>
+            <label for="email" class="block text-sm font-medium text-slate-300 mb-2">Email</label>
             <input id="email" name="email" type="email"
-                class="w-full bg-slate-950 border border-slate-700/50 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-lg px-4 py-2.5 text-white placeholder-slate-600 transition outline-none"
+                class="w-full bg-[#0f172a] border border-slate-700 focus:border-emerald-500 focus:ring-emerald-500 rounded-lg px-4 py-2.5 text-white placeholder-slate-600 transition-colors shadow-sm"
                 :value="old('email', $user->email)" required autocomplete="username" />
             <x-input-error class="mt-2" :messages="$errors->get('email')" />
 
@@ -53,15 +53,19 @@
             @endif
         </div>
 
-        <div class="flex items-center gap-4">
+        <div class="flex items-center gap-4 pt-4">
             <button type="submit"
-                class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 px-6 rounded-lg shadow-lg shadow-emerald-900/20 transition-all hover:scale-[1.02]">
-                {{ __('Save') }}
+                class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 px-6 rounded-lg shadow-lg shadow-emerald-500/20 transition-all hover:shadow-emerald-500/30 active:scale-95 flex items-center gap-2">
+                <i class="material-icons text-[18px]">save</i>
+                {{ __('Save Changes') }}
             </button>
 
             @if (session('status') === 'profile-updated')
                 <p x-data="{ show: true }" x-show="show" x-transition x-init="setTimeout(() => show = false, 2000)"
-                    class="text-sm text-emerald-400">{{ __('Saved.') }}</p>
+                    class="text-sm text-emerald-400 font-medium flex items-center gap-1">
+                    <i class="material-icons text-[16px]">check_circle</i>
+                    {{ __('Saved.') }}
+                </p>
             @endif
         </div>
     </form>
