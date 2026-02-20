@@ -83,43 +83,44 @@ class ErrorMonitorController extends Controller
         // We'll pass the paginated collection directly, but we map it to a format the frontend expects
         $formattedErrors = $errorGroups->getCollection()->map(function ($group) {
             $latestEvent = $group->events->first();
+            $payload = is_string($latestEvent?->payload) ? json_decode($latestEvent?->payload, true) : ($latestEvent?->payload ?? []);
 
             // Determine severity/type from the group title or event payload
-            // For now, simple logic:
-            $type = 'ERROR';
-            if (stripos($group->title, 'Warning') !== false)
-                $type = 'WARNING';
-            if (stripos($group->title, 'Exception') !== false)
-                $type = 'EXCEPTION';
+            $type = $payload['type'] ?? 'Error';
 
-            // Calculate Impacted Users (Approximation based on IP for now)
-            $impactedUsers = $group->events()->distinct('payload->ip')->count('payload->ip');
-
-            // Determine Severity
+            // Assign severity
             $severity = 'info';
-            $aiScore = $group->ai_analysis['severity_score'] ?? 0;
-
-            if ($aiScore >= 7 || $group->count > 50) {
+            if (in_array($type, ['javascript_error', 'promise_rejection', 'Error'])) {
                 $severity = 'critical';
-            } elseif ($aiScore >= 4 || $group->count > 10) {
+            } elseif (in_array($type, ['network_error', 'resource_error', 'Warning'])) {
                 $severity = 'warning';
             }
+
+            $aiSolution = is_string($group->ai_solution) ? json_decode($group->ai_solution, true) : ($group->ai_solution ?? null);
 
             return [
                 'id' => $group->id,
                 'type' => $type,
-                'message' => $group->ai_analysis['title'] ?? $group->title, // Use AI Title if available
-                'raw_message' => $group->title, // Keep raw message for details
-                'file' => $latestEvent->payload['file'] ?? 'unknown',
-                'line' => $latestEvent->payload['line'] ?? 0,
-                'trace' => $latestEvent->stack_trace ?? '',
+                'message' => $aiSolution['title'] ?? $group->title,
+                'raw_message' => $group->title,
+                'file' => $payload['file'] ?? 'unknown',
+                'line' => $payload['line'] ?? 0,
+                'trace' => $latestEvent?->stack_trace ?? '',
                 'timestamp' => $group->last_seen_at->diffForHumans(),
                 'status' => $group->status,
                 'severity' => $severity,
-                'users_impacted' => $impactedUsers > 0 ? $impactedUsers : 1, // Default to at least 1 if we can't track
-                'browser' => $latestEvent->payload['userAgent'] ?? 'Unknown',
+                'users_impacted' => $group->count > 0 ? $group->count : 1, // Simplified metric
+                'browser' => $payload['userAgent'] ?? 'Unknown',
                 'occurrences' => $group->count,
-                'ai_analysis' => $group->ai_analysis
+                'ai_analysis' => $aiSolution ? [
+                    'severity_score' => $severity === 'critical' ? 9 : ($severity === 'warning' ? 6 : 3), // Mock score
+                    'title' => $aiSolution['title'] ?? 'Error',
+                    'summary' => $aiSolution['explanation'] ?? '',
+                    'root_cause' => $aiSolution['explanation'] ?? '',
+                    'code_fix' => $aiSolution['fix'] ?? '',
+                    'solution_steps' => [$aiSolution['fix'] ?? 'Please review the error trace.'],
+                    'prevention' => 'Monitor this code path for similar issues.',
+                ] : null
             ];
         });
 
