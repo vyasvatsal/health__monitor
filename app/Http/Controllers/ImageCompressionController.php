@@ -37,7 +37,7 @@ class ImageCompressionController extends Controller
             // For now, let's just re-encode with specified quality to reduce size.
             // If the image is massive, we might want to resize it safely too, but let's stick to compression first.
 
-            $quality = $request->input('quality', 80);
+            $quality = (int) $request->input('quality', 80);
 
             // Encode the image
             // We use the same format as input if possible, or fallback to jpeg
