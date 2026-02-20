@@ -10,34 +10,42 @@
     <style>
         .img-comp-container {
             position: relative;
-            height: 400px;
+            width: 100%;
+            height: 100%;
+            min-height: 400px;
             overflow: hidden;
-            border-radius: 0.5rem;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            border-radius: 1rem;
+            cursor: col-resize;
         }
 
         .img-comp-img {
             position: absolute;
-            width: auto;
-            height: auto;
-            overflow: hidden;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
         }
 
         .img-comp-img img {
             display: block;
-            max-width: none;
+            width: 100%;
             height: 100%;
-            object-fit: cover;
+            object-fit: contain;
+            pointer-events: none;
+        }
+
+        .img-comp-overlay {
+            clip-path: inset(0 50% 0 0);
         }
 
         .img-comp-slider {
             position: absolute;
-            z-index: 9;
+            z-index: 10;
             cursor: ew-resize;
-            width: 40px;
-            height: 40px;
+            width: 44px;
+            height: 44px;
             background-color: white;
-            opacity: 0.9;
+            border: 2px solid #3b82f6;
             border-radius: 50%;
             top: 50%;
             left: 50%;
@@ -45,19 +53,39 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-            transition: all 0.2s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            transition: transform 0.2s ease, background-color 0.2s;
         }
 
         .img-comp-slider::before {
             content: '↔';
             font-weight: bold;
-            color: #333;
+            color: #3b82f6;
+            font-size: 1.25rem;
+            line-height: 1;
+        }
+
+        .img-comp-slider::after {
+            content: '';
+            position: absolute;
+            top: -500px;
+            bottom: -500px;
+            left: 50%;
+            width: 2px;
+            background-color: white;
+            transform: translateX(-50%);
+            z-index: -1;
+            pointer-events: none;
+            box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
         }
 
         .img-comp-slider:hover {
-            transform: translate(-50%, -50%) scale(1.1);
+            transform: translate(-50%, -50%) scale(1.05);
             background-color: #f8fafc;
+        }
+
+        .img-comp-slider:active {
+            transform: translate(-50%, -50%) scale(0.95);
         }
     </style>
 
@@ -212,11 +240,11 @@
 
                                 <!-- Labels (Overlay) -->
                                 <div id="comparison-labels"
-                                    class="absolute top-4 left-4 right-4 flex justify-between pointer-events-none opacity-0 transition-opacity duration-300">
+                                    class="absolute top-4 left-4 right-4 flex justify-between pointer-events-none opacity-0 transition-opacity duration-300 z-20">
                                     <span
-                                        class="bg-black/50 backdrop-blur text-white text-xs px-2 py-1 rounded">Original</span>
+                                        class="bg-black/50 backdrop-blur text-white text-xs px-2 py-1 rounded shadow-sm">Original</span>
                                     <span
-                                        class="bg-green-500/80 backdrop-blur text-white text-xs px-2 py-1 rounded">Compressed</span>
+                                        class="bg-green-500/80 backdrop-blur text-white text-xs px-2 py-1 rounded shadow-sm">Compressed</span>
                                 </div>
 
                             </div>
@@ -412,70 +440,84 @@
             }
 
             function initComparisons() {
-                const x = comparisonContainer.getElementsByClassName("img-comp-overlay");
-                // Remove existing sliders if any
+                const overlay = comparisonContainer.querySelector(".img-comp-overlay");
                 const existingSliders = document.getElementsByClassName("img-comp-slider");
                 while (existingSliders.length > 0) {
                     existingSliders[0].parentNode.removeChild(existingSliders[0]);
                 }
-
-                for (let i = 0; i < x.length; i++) {
-                    compareImages(x[i]);
-                }
+                compareImages(overlay);
             }
 
-            function compareImages(img) {
-                let slider, clicked = 0, w, h;
-
-                w = img.offsetWidth;
-                h = img.offsetHeight;
-
-                img.style.width = (w / 2) + "px";
+            function compareImages(overlay) {
+                let slider, clicked = 0;
 
                 slider = document.createElement("DIV");
                 slider.setAttribute("class", "img-comp-slider");
-                img.parentElement.insertBefore(slider, img);
+                overlay.parentElement.insertBefore(slider, overlay);
 
-                slider.style.top = (h / 2) + "px";
-                slider.style.left = (w / 2) - (slider.offsetWidth / 2) + "px";
+                slider.style.top = "50%";
+                slider.style.left = "50%";
+                overlay.style.clipPath = "inset(0 50% 0 0)";
 
                 slider.addEventListener("mousedown", slideReady);
                 window.addEventListener("mouseup", slideFinish);
-                slider.addEventListener("touchstart", slideReady);
+                slider.addEventListener("touchstart", slideReady, { passive: false });
                 window.addEventListener("touchend", slideFinish);
+
+                // Allow clicking/dragging anywhere on container
+                comparisonContainer.addEventListener("mousedown", slideReadyContainer);
+                comparisonContainer.addEventListener("touchstart", slideReadyContainer, { passive: false });
+
+                function slideReadyContainer(e) {
+                    if (e.target.tagName === 'SPAN' || e.target.closest('#comparison-labels')) return;
+                    e.preventDefault();
+                    clicked = 1;
+                    window.addEventListener("mousemove", slideMove);
+                    window.addEventListener("touchmove", slideMove, { passive: false });
+                    slideMove(e); // jump to position
+                }
 
                 function slideReady(e) {
                     e.preventDefault();
                     clicked = 1;
                     window.addEventListener("mousemove", slideMove);
-                    window.addEventListener("touchmove", slideMove);
+                    window.addEventListener("touchmove", slideMove, { passive: false });
                 }
 
                 function slideFinish() {
                     clicked = 0;
+                    window.removeEventListener("mousemove", slideMove);
+                    window.removeEventListener("touchmove", slideMove);
                 }
 
                 function slideMove(e) {
-                    let pos;
-                    if (clicked == 0) return false;
-                    pos = getCursorPos(e);
+                    if (clicked === 0) return false;
+
+                    if (e.type === "mousemove") {
+                        e.preventDefault();
+                    }
+                    if (e.type === "touchmove") {
+                        if (e.cancelable) e.preventDefault();
+                    }
+
+                    let pos = getCursorPos(e);
+                    let w = comparisonContainer.offsetWidth;
                     if (pos < 0) pos = 0;
                     if (pos > w) pos = w;
-                    slide(pos);
+                    slide(pos, w);
                 }
 
                 function getCursorPos(e) {
-                    let a, x = 0;
-                    e = (e.changedTouches) ? e.changedTouches[0] : e;
-                    a = img.getBoundingClientRect();
-                    x = e.pageX - a.left;
-                    x = x - window.pageXOffset;
-                    return x;
+                    let a = comparisonContainer.getBoundingClientRect();
+                    let clientX = e.changedTouches ? e.changedTouches[0].clientX : e.clientX;
+                    return clientX - a.left;
                 }
 
-                function slide(x) {
-                    img.style.width = x + "px";
-                    slider.style.left = img.offsetWidth - (slider.offsetWidth / 2) + "px";
+                function slide(x, w) {
+                    let percentage = (x / w) * 100;
+                    let rightClip = 100 - percentage;
+                    overlay.style.clipPath = `inset(0 ${rightClip}% 0 0)`;
+                    slider.style.left = percentage + "%";
                 }
             }
         });
