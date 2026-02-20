@@ -143,6 +143,13 @@ class HealthScoreCalculator
 
     public function getLatest()
     {
-        return HealthScore::where('store_id', $this->store->id)->latest()->first() ?? $this->calculate();
+        $latest = HealthScore::where('store_id', $this->store->id)->latest()->first();
+
+        // If no score exists, or if the latest score is older than 1 hour, recalculate.
+        if (!$latest || $latest->created_at->lt(now()->subHour())) {
+            return $this->calculate();
+        }
+
+        return $latest;
     }
 }
