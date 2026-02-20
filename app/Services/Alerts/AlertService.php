@@ -21,9 +21,16 @@ class AlertService
 
         // 1. Email Alert
         if (!empty($settings['email_critical'])) {
-            // For MVP, logging as email simulation or using Mail facade if configured
-            Log::error("[CRITICAL EMAIL ALERT] To: {$user->email} - {$message}");
-            // Mail::raw($message, function($msg) use ($user) { ... });
+            try {
+                // Send actual email if configured
+                Mail::raw($message, function ($msg) use ($user) {
+                    $msg->to($user->email)
+                        ->subject('🚨 Critical Health Alert');
+                });
+                Log::info("[EMAIL SENT] To: {$user->email}");
+            } catch (\Exception $e) {
+                Log::error("Failed to send email alert: " . $e->getMessage());
+            }
         }
 
         // 2. Slack Alert

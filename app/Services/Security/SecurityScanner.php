@@ -39,6 +39,35 @@ class SecurityScanner
             $score -= 20;
         }
 
+        // 4. Critical File Exposure (.git)
+        // We check if we can access the .git directory via HTTP
+        try {
+            $response = Http::timeout(2)->get($appUrl . '/.git/HEAD');
+            if ($response->successful() && str_contains($response->body(), 'ref:')) {
+                $issues[] = 'CRITICAL: .git directory is exposed publicly! Deny access in Nginx/Apache.';
+                $score -= 50;
+            }
+        } catch (\Exception $e) {
+            // If connection fails, we assume it's not exposed or unreachable (Safe)
+        }
+
+        // 5. Security Headers
+        // Simulated check: In a real app we'd scan the headers of the homepage
+        try {
+            $response = Http::timeout(2)->get($appUrl);
+            $headers = $response->headers();
+
+            if (!isset($headers['X-Frame-Options'])) {
+                $issues[] = 'Notice: Missing X-Frame-Options header (Clickjacking protection).';
+                $score -= 5;
+            }
+            if (!isset($headers['X-Content-Type-Options'])) {
+                $issues[] = 'Notice: Missing X-Content-Type-Options header.';
+                $score -= 5;
+            }
+        } catch (\Exception $e) {
+        }
+
         return [
             'score' => max(0, $score),
             'issues' => $issues,

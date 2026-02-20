@@ -11,18 +11,32 @@ class OptimizationController extends Controller
     public function run()
     {
         try {
-            // Run standard Laravel optimizations
+            // 1. Run standard Laravel optimizations
             Artisan::call('optimize');
             Artisan::call('view:cache');
+
+            // 2. Run Database Analysis
+            $analyzer = new \App\Services\Optimization\DatabaseAnalyzer();
+            $dbIssues = $analyzer->analyze();
+
+            $message = 'System optimized (Cache, Views, Config).';
+            if (!empty($dbIssues)) {
+                $message .= ' Found ' . count($dbIssues) . ' database optimization opportunities.';
+            }
 
             // Log the action
             Log::info('Autonomous optimization triggered by user ' . auth()->id());
 
             if (request()->expectsJson()) {
-                return response()->json(['status' => 'success', 'message' => 'Optimizations executed successfully.']);
+                return response()->json([
+                    'status' => 'success',
+                    'message' => $message,
+                    'db_recommendations' => $dbIssues
+                ]);
             }
 
-            return back()->with('success', 'Autonomous optimizations (CACHE, VIEW, CONFIG) executed successfully.');
+            return back()->with('success', $message)->with('db_optimizations', $dbIssues);
+
         } catch (\Exception $e) {
             Log::error('Optimization failed: ' . $e->getMessage());
 
