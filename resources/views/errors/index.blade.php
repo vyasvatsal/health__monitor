@@ -45,18 +45,34 @@
                                 onclick="openErrorModal('{{ $group->id }}')">
                                 <td class="px-6 py-4">
                                     <div class="flex flex-col">
-                                        <span
-                                            class="text-white font-medium text-sm truncate max-w-xs group-hover:text-emerald-400 transition-colors"
-                                            title="{{ $group->type }}">{{ $group->type }}</span>
-                                        <span
-                                            class="text-slate-400 text-xs truncate max-w-xs mt-1">{{ Str::limit($group->message, 60) }}</span>
+                                        <div class="flex items-center gap-2 mb-1">
+                                            @if(($group->type ?? '') === 'log')
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                                                    Log
+                                                </span>
+                                                <span class="text-white font-medium text-sm truncate max-w-xs group-hover:text-blue-400 transition-colors" title="{{ $group->level ?? 'Unknown' }}">
+                                                    {{ ucfirst($group->level ?? 'Warning') }}
+                                                </span>
+                                            @else
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-rose-500/10 text-rose-400 border border-rose-500/20">
+                                                    Exception
+                                                </span>
+                                                <span class="text-white font-medium text-sm truncate max-w-xs group-hover:text-rose-400 transition-colors" title="{{ $group->type ?? 'Exception' }}">
+                                                    {{ class_basename($group->type ?? 'Exception') }}
+                                                </span>
+                                            @endif
+                                        </div>
+                                        <span class="text-slate-400 text-xs truncate max-w-[250px]">{{ Str::limit($group->message, 80) }}</span>
                                     </div>
                                 </td>
                                 <td class="px-6 py-4">
                                     <div class="flex flex-col">
-                                        <span class="text-slate-300 text-sm font-mono truncate max-w-[200px]"
-                                            title="{{ $group->file }}">{{ basename($group->file) }}</span>
-                                        <span class="text-slate-500 text-xs font-mono">Line {{ $group->line }}</span>
+                                        @if($group->file)
+                                            <span class="text-slate-300 text-sm font-mono truncate max-w-[200px]" title="{{ $group->file }}">{{ basename($group->file) }}</span>
+                                            <span class="text-slate-500 text-xs font-mono">Line {{ $group->line ?? 'Unknown' }}</span>
+                                        @else
+                                            <span class="text-slate-500 text-sm italic">No file context</span>
+                                        @endif
                                     </div>
                                 </td>
                                 <td class="px-6 py-4 text-right">

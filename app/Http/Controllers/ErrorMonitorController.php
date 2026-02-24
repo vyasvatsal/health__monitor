@@ -88,12 +88,20 @@ class ErrorMonitorController extends Controller
             // Determine severity/type from the group title or event payload
             $type = $payload['type'] ?? 'Error';
 
+            // Attempt to resolve real types for logs out of the payload
+            $level = null;
+            if ($type === 'log') {
+                $level = $payload['context']['level'] ?? 'info';
+            }
+
             // Assign severity
             $severity = 'info';
-            if (in_array($type, ['javascript_error', 'promise_rejection', 'Error'])) {
+            if (in_array($type, ['javascript_error', 'promise_rejection', 'Error', 'Exception'])) {
                 $severity = 'critical';
-            } elseif (in_array($type, ['network_error', 'resource_error', 'Warning'])) {
+            } elseif (in_array($type, ['network_error', 'resource_error', 'Warning']) || $level === 'warning') {
                 $severity = 'warning';
+            } elseif ($level === 'error' || $level === 'critical' || $level === 'emergency') {
+                $severity = 'critical';
             }
 
             $aiSolution = is_string($group->ai_solution) ? json_decode($group->ai_solution, true) : ($group->ai_solution ?? null);
@@ -101,6 +109,7 @@ class ErrorMonitorController extends Controller
             return [
                 'id' => $group->id,
                 'type' => $type,
+                'level' => $level,
                 'message' => $aiSolution['title'] ?? $group->title,
                 'raw_message' => $group->title,
                 'file' => $payload['file'] ?? 'unknown',
