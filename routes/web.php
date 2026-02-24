@@ -29,6 +29,11 @@ Route::get('/dashboard', [DashboardController::class, 'index'])
     ->middleware(['auth', 'verified'])
     ->name('dashboard');
 
+Route::get('/test-sdk', function () {
+    \Illuminate\Support\Facades\Log::warning('This is a test warning triggered from the web route to test SDK logs');
+    throw new \Exception('This is a hard crash triggered from the web route to test the SDK Exception Handler');
+});
+
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('stores', App\Http\Controllers\StoreController::class);
     // Incidents (Phase 5)

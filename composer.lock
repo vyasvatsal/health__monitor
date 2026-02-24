@@ -4,8 +4,46 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "b4021918331d48ae2e4e40b110d46da7",
+    "content-hash": "b7a7046a71a3c3a644eb3a43d6ea18b0",
     "packages": [
+        {
+            "name": "aihealth/laravel-monitor",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "../aihealth-laravel-sdk",
+                "reference": "1c367512f6306669d2b25b3a97c2c6dacbfbddd6"
+            },
+            "require": {
+                "illuminate/http": "^9.0|^10.0|^11.0|^12.0",
+                "illuminate/support": "^9.0|^10.0|^11.0|^12.0",
+                "php": "^8.0"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "AIHealth\\Laravel\\AIHealthServiceProvider"
+                    ],
+                    "aliases": {
+                        "AIHealth": "AIHealth\\Laravel\\Facades\\AIHealth"
+                    }
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "AIHealth\\Laravel\\": "src/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "AI Store Health Monitor SDK for Laravel",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
         {
             "name": "brick/math",
             "version": "0.14.8",
@@ -9294,7 +9332,9 @@
     ],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": {},
+    "stability-flags": {
+        "aihealth/laravel-monitor": 20
+    },
     "prefer-stable": true,
     "prefer-lowest": false,
     "platform": {
