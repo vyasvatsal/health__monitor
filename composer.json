@@ -89,12 +89,6 @@
             "php-http/discovery": true
         }
     },
-    "repositories": [
-        {
-            "type": "vcs",
-            "url": "https://github.com/vyasvatsal/aihealth-laravel-sdk"
-        }
-    ],
     "minimum-stability": "dev",
     "prefer-stable": true
 }
