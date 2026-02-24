@@ -189,13 +189,13 @@
 
                                         <td class="px-6 py-4 align-top w-32">
                                             <span x-bind:class="{
-                                                    'bg-rose-500/10 text-rose-400 border-rose-500/20': error.severity === 'critical' || error.type === 'Error' || error.type === 'Exception',
-                                                    'bg-amber-500/10 text-amber-400 border-amber-500/20': error.severity === 'warning',
-                                                    'bg-purple-500/10 text-purple-400 border-purple-500/20': error.type === 'NetworkError',
-                                                    'bg-blue-500/10 text-blue-400 border-blue-500/20': error.severity === 'info' || error.type === 'log',
-                                                }"
+                                                                                                        'bg-rose-500/10 text-rose-400 border-rose-500/20': error.severity === 'critical' || error.type === 'Error',
+                                                                                                        'bg-amber-500/10 text-amber-400 border-amber-500/20': error.severity === 'warning' || error.type === 'ResourceError',
+                                                                                                        'bg-purple-500/10 text-purple-400 border-purple-500/20': error.type === 'NetworkError',
+                                                                                                        'bg-blue-500/10 text-blue-400 border-blue-500/20': (error.severity === 'info' || !error.severity) && error.type !== 'NetworkError' && error.type !== 'ResourceError' && error.type !== 'Error'
+                                                                                                    }"
                                                 class="px-2.5 py-1 rounded-md text-[11px] font-bold border uppercase tracking-wider block w-fit text-center shadow-sm"
-                                                x-text="(error.type === 'log' ? 'LOG' : (error.type === 'Exception' ? 'CRASH' : error.type || 'ERROR'))"></span>
+                                                x-text="error.type || 'ERROR'"></span>
                                         </td>
 
                                         <td class="px-6 py-4 align-top">
@@ -320,10 +320,10 @@
                         <div>
                             <span
                                 x-bind:class="{
-                                                                                                                                    'bg-rose-500/10 text-rose-400 border-rose-500/20': selectedError?.severity === 'critical',
-                                                                                                                                    'bg-amber-500/10 text-amber-400 border-amber-500/20': selectedError?.severity === 'warning',
-                                                                                                                                    'bg-blue-500/10 text-blue-400 border-blue-500/20': selectedError?.severity === 'info'
-                                                                                                                                }"
+                                                                                                                                'bg-rose-500/10 text-rose-400 border-rose-500/20': selectedError?.severity === 'critical',
+                                                                                                                                'bg-amber-500/10 text-amber-400 border-amber-500/20': selectedError?.severity === 'warning',
+                                                                                                                                'bg-blue-500/10 text-blue-400 border-blue-500/20': selectedError?.severity === 'info'
+                                                                                                                            }"
                                 class="px-2 py-1 rounded text-xs font-bold border uppercase tracking-wider"
                                 x-text="selectedError?.type"></span>
                             <h2 class="text-white font-bold text-lg mt-2 truncate max-w-md">Error Details</h2>
@@ -579,7 +579,7 @@
                             </div>
 
                             <!-- Laravel Tab -->
-                            <div x-show="tab === 'laravel'" class="space-y-6">
+                            <div x-show="tab === 'laravel'" class="space-y-4">
                                 <div class="space-y-2">
                                     <h4 class="text-sm font-medium text-white flex items-center gap-2"><span
                                             class="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xs font-bold">1</span>
@@ -605,9 +605,9 @@
                                         <button class="absolute top-2 right-2 text-slate-500 hover:text-white"
                                             onclick="navigator.clipboard.writeText(this.nextElementSibling.innerText)"><i
                                                 class="material-icons text-sm">content_copy</i></button>
-                                        <pre class="text-xs text-emerald-300 font-mono overflow-x-auto p-2">AIHEALTH_DSN="http://{{ $currentStore->secret_key }}@{{ request()->getHost() }}{{ request()->getPort() != 80 && request()->getPort() != 443 ? ':' . request()->getPort() : '' }}/api/ingest"
-        AIHEALTH_SEND_LOGS=true
-        AIHEALTH_SEND_EXCEPTIONS=true</pre>
+                                        <pre class="text-xs text-emerald-300 font-mono overflow-x-auto p-2">AIHEALTH_DSN="{{ str_replace('://', '://' . $currentStore->secret_key . '@', url('/api/ingest')) }}"
+AIHEALTH_SEND_LOGS=true
+AIHEALTH_SEND_EXCEPTIONS=true</pre>
                                     </div>
                                     <p
                                         class="text-xs text-emerald-400/80 mt-2 bg-emerald-500/10 p-2 rounded border border-emerald-500/20 flex gap-2 items-center">
@@ -626,17 +626,16 @@
                                         <button class="absolute top-2 right-2 text-slate-500 hover:text-white"
                                             onclick="navigator.clipboard.writeText(this.nextElementSibling.innerText)"><i
                                                 class="material-icons text-sm">content_copy</i></button>
-                                        <pre class="text-xs text-blue-300 font-mono overflow-x-auto p-2">
-                    &lt;script src="{{ url('/js/monitor-client.js') }}"&gt;&lt;/script&gt;
-                    &lt;script&gt;
-                        if (typeof HealthMonitor !== 'undefined') {
-                            HealthMonitor.init({
-                                endpoint: '{{ url('/api/v1/track') }}',
-                                publicKey: '{{ $currentStore->public_key }}',
-                                debug: true
-                            });
-                        }
-                    &lt;/script&gt;</pre>
+                                        <pre class="text-xs text-blue-300 font-mono overflow-x-auto p-2">&lt;script src="{{ url('/js/monitor-client.js') }}"&gt;&lt;/script&gt;
+&lt;script&gt;
+    if (typeof HealthMonitor !== 'undefined') {
+        HealthMonitor.init({
+            endpoint: '{{ url('/api/v1/track') }}',
+            publicKey: '{{ $currentStore->public_key }}',
+            debug: true
+        });
+    }
+&lt;/script&gt;</pre>
                                     </div>
                                 </div>
                             </div>
