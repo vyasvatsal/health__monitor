@@ -189,11 +189,11 @@
 
                                         <td class="px-6 py-4 align-top w-32">
                                             <span x-bind:class="{
-                                                'bg-rose-500/10 text-rose-400 border-rose-500/20': error.severity === 'critical' || error.type === 'Error' || error.type === 'Exception',
-                                                'bg-amber-500/10 text-amber-400 border-amber-500/20': error.severity === 'warning',
-                                                'bg-purple-500/10 text-purple-400 border-purple-500/20': error.type === 'NetworkError',
-                                                'bg-blue-500/10 text-blue-400 border-blue-500/20': error.severity === 'info' || error.type === 'log',
-                                            }"
+                                                    'bg-rose-500/10 text-rose-400 border-rose-500/20': error.severity === 'critical' || error.type === 'Error' || error.type === 'Exception',
+                                                    'bg-amber-500/10 text-amber-400 border-amber-500/20': error.severity === 'warning',
+                                                    'bg-purple-500/10 text-purple-400 border-purple-500/20': error.type === 'NetworkError',
+                                                    'bg-blue-500/10 text-blue-400 border-blue-500/20': error.severity === 'info' || error.type === 'log',
+                                                }"
                                                 class="px-2.5 py-1 rounded-md text-[11px] font-bold border uppercase tracking-wider block w-fit text-center shadow-sm"
                                                 x-text="(error.type === 'log' ? 'LOG' : (error.type === 'Exception' ? 'CRASH' : error.type || 'ERROR'))"></span>
                                         </td>
@@ -320,10 +320,10 @@
                         <div>
                             <span
                                 x-bind:class="{
-                                                                                                                                'bg-rose-500/10 text-rose-400 border-rose-500/20': selectedError?.severity === 'critical',
-                                                                                                                                'bg-amber-500/10 text-amber-400 border-amber-500/20': selectedError?.severity === 'warning',
-                                                                                                                                'bg-blue-500/10 text-blue-400 border-blue-500/20': selectedError?.severity === 'info'
-                                                                                                                            }"
+                                                                                                                                    'bg-rose-500/10 text-rose-400 border-rose-500/20': selectedError?.severity === 'critical',
+                                                                                                                                    'bg-amber-500/10 text-amber-400 border-amber-500/20': selectedError?.severity === 'warning',
+                                                                                                                                    'bg-blue-500/10 text-blue-400 border-blue-500/20': selectedError?.severity === 'info'
+                                                                                                                                }"
                                 class="px-2 py-1 rounded text-xs font-bold border uppercase tracking-wider"
                                 x-text="selectedError?.type"></span>
                             <h2 class="text-white font-bold text-lg mt-2 truncate max-w-md">Error Details</h2>
@@ -606,13 +606,14 @@
                                             onclick="navigator.clipboard.writeText(this.nextElementSibling.innerText)"><i
                                                 class="material-icons text-sm">content_copy</i></button>
                                         <pre class="text-xs text-emerald-300 font-mono overflow-x-auto p-2">AIHEALTH_DSN="http://{{ $currentStore->secret_key }}@{{ request()->getHost() }}{{ request()->getPort() != 80 && request()->getPort() != 443 ? ':' . request()->getPort() : '' }}/api/ingest"
-    AIHEALTH_SEND_LOGS=true
-    AIHEALTH_SEND_EXCEPTIONS=true</pre>
+        AIHEALTH_SEND_LOGS=true
+        AIHEALTH_SEND_EXCEPTIONS=true</pre>
                                     </div>
                                     <p
                                         class="text-xs text-emerald-400/80 mt-2 bg-emerald-500/10 p-2 rounded border border-emerald-500/20 flex gap-2 items-center">
                                         <i class="material-icons text-sm">auto_awesome</i> You're all set! No manual code
-                                        changes required.</p>
+                                        changes required.
+                                    </p>
                                 </div>
                             </div>
 
@@ -626,16 +627,16 @@
                                             onclick="navigator.clipboard.writeText(this.nextElementSibling.innerText)"><i
                                                 class="material-icons text-sm">content_copy</i></button>
                                         <pre class="text-xs text-blue-300 font-mono overflow-x-auto p-2">
-                &lt;script src="{{ url('/js/monitor-client.js') }}"&gt;&lt;/script&gt;
-                &lt;script&gt;
-                    if (typeof HealthMonitor !== 'undefined') {
-                        HealthMonitor.init({
-                            endpoint: '{{ route('api.capture', ['store_id' => $currentStore->id]) }}',
-                            publicKey: '{{ $currentStore->public_key }}',
-                            debug: true
-                        });
-                    }
-                &lt;/script&gt;</pre>
+                    &lt;script src="{{ url('/js/monitor-client.js') }}"&gt;&lt;/script&gt;
+                    &lt;script&gt;
+                        if (typeof HealthMonitor !== 'undefined') {
+                            HealthMonitor.init({
+                                endpoint: '{{ url('/api/v1/track') }}',
+                                publicKey: '{{ $currentStore->public_key }}',
+                                debug: true
+                            });
+                        }
+                    &lt;/script&gt;</pre>
                                     </div>
                                 </div>
                             </div>
