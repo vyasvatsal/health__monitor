@@ -4,21 +4,28 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "b7a7046a71a3c3a644eb3a43d6ea18b0",
+    "content-hash": "93d96c4403885ad3347f8bfd5978203e",
     "packages": [
         {
             "name": "aihealth/laravel-monitor",
             "version": "dev-main",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/vyasvatsal/aihealth-laravel-sdk.git",
+                "reference": "e882d462a2a93aa7cae9dff7d976840cb9cfc05a"
+            },
             "dist": {
-                "type": "path",
-                "url": "../aihealth-laravel-sdk",
-                "reference": "1c367512f6306669d2b25b3a97c2c6dacbfbddd6"
+                "type": "zip",
+                "url": "https://api.github.com/repos/vyasvatsal/aihealth-laravel-sdk/zipball/e882d462a2a93aa7cae9dff7d976840cb9cfc05a",
+                "reference": "e882d462a2a93aa7cae9dff7d976840cb9cfc05a",
+                "shasum": ""
             },
             "require": {
                 "illuminate/http": "^9.0|^10.0|^11.0|^12.0",
                 "illuminate/support": "^9.0|^10.0|^11.0|^12.0",
                 "php": "^8.0"
             },
+            "default-branch": true,
             "type": "library",
             "extra": {
                 "laravel": {
@@ -39,10 +46,11 @@
                 "MIT"
             ],
             "description": "AI Store Health Monitor SDK for Laravel",
-            "transport-options": {
-                "symlink": true,
-                "relative": true
-            }
+            "support": {
+                "source": "https://github.com/vyasvatsal/aihealth-laravel-sdk/tree/main",
+                "issues": "https://github.com/vyasvatsal/aihealth-laravel-sdk/issues"
+            },
+            "time": "2026-02-24T05:57:10+00:00"
         },
         {
             "name": "brick/math",
@@ -9331,7 +9339,7 @@
         }
     ],
     "aliases": [],
-    "minimum-stability": "stable",
+    "minimum-stability": "dev",
     "stability-flags": {
         "aihealth/laravel-monitor": 20
     },

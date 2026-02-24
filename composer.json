@@ -91,13 +91,10 @@
     },
     "repositories": [
         {
-            "type": "path",
-            "url": "../aihealth-laravel-sdk",
-            "options": {
-                "symlink": true
-            }
+            "type": "vcs",
+            "url": "https://github.com/vyasvatsal/aihealth-laravel-sdk"
         }
     ],
-    "minimum-stability": "stable",
+    "minimum-stability": "dev",
     "prefer-stable": true
 }
