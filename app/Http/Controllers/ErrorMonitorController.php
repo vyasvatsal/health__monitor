@@ -104,7 +104,7 @@ class ErrorMonitorController extends Controller
                 $severity = 'critical';
             }
 
-            $aiSolution = is_string($group->ai_solution) ? json_decode($group->ai_solution, true) : ($group->ai_solution ?? null);
+            $aiSolution = is_string($group->ai_analysis) ? json_decode($group->ai_analysis, true) : ($group->ai_analysis ?? null);
 
             return [
                 'id' => $group->id,
