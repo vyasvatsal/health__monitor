@@ -90,5 +90,14 @@
         }
     },
     "minimum-stability": "dev",
-    "prefer-stable": true
+    "prefer-stable": true,
+    "repositories": [
+        {
+            "type": "path",
+            "url": "C:/xampp/htdocs/aihealth-laravel-sdk",
+            "options": {
+                "symlink": true
+            }
+        }
+    ]
 }

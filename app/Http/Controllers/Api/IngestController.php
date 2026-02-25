@@ -36,6 +36,13 @@ class IngestController extends Controller
 
         // 2. Validate Events Array
         $events = $request->input('events');
+
+        // If empty, try to explicitly decode the request content (handles cases where Content-Type is missing)
+        if (empty($events)) {
+            $payload = json_decode($request->getContent(), true);
+            $events = $payload['events'] ?? null;
+        }
+
         if (!is_array($events) || empty($events)) {
             return response()->json(['error' => 'No events provided'], 422);
         }
@@ -44,8 +51,26 @@ class IngestController extends Controller
 
         // 3. Process each event in the batch
         foreach ($events as $eventData) {
-            // Determine the type: exception or log
+            // Determine the type: exception or log or transaction
             $type = $eventData['type'] ?? 'log';
+
+            if ($type === 'transaction') {
+                $txn = \App\Models\PerformanceTransaction::create([
+                    'store_id' => $store->id,
+                    'route_name' => $eventData['route_name'] ?? 'unknown',
+                    'method' => $eventData['method'] ?? 'GET',
+                    'url' => $eventData['url'] ?? '',
+                    'duration_ms' => $eventData['duration_ms'] ?? 0,
+                    'memory_usage_mb' => $eventData['memory_usage_mb'] ?? 0,
+                    'env' => $eventData['env'] ?? 'production',
+                    'payload' => ['status_code' => $eventData['status_code'] ?? 200],
+                    'occurred_at' => \Carbon\Carbon::parse($eventData['timestamp'] ?? now()),
+                ]);
+
+                $processedEvents[] = 'txn_' . $txn->id;
+                continue;
+            }
+
             $message = $eventData['message'] ?? 'Unknown Error';
 
             // fingerprinting
