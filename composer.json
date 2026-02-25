@@ -93,11 +93,8 @@
     "prefer-stable": true,
     "repositories": [
         {
-            "type": "path",
-            "url": "C:/xampp/htdocs/aihealth-laravel-sdk",
-            "options": {
-                "symlink": true
-            }
+            "type": "vcs",
+            "url": "https://github.com/vyasvatsal/aihealth-laravel-sdk.git"
         }
     ]
 }

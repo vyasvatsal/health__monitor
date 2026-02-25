@@ -4,15 +4,21 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "79ac0575d88ebc7de4a2951b35d5fc90",
+    "content-hash": "a5fe8f194abb3b383bff93908b5b1c7c",
     "packages": [
         {
             "name": "aihealth/laravel-monitor",
-            "version": "dev-main",
+            "version": "v1.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/vyasvatsal/aihealth-laravel-sdk.git",
+                "reference": "e882d462a2a93aa7cae9dff7d976840cb9cfc05a"
+            },
             "dist": {
-                "type": "path",
-                "url": "C:/xampp/htdocs/aihealth-laravel-sdk",
-                "reference": "ff4f41268bf8e79152b750bae1872258b8f622c1"
+                "type": "zip",
+                "url": "https://api.github.com/repos/vyasvatsal/aihealth-laravel-sdk/zipball/e882d462a2a93aa7cae9dff7d976840cb9cfc05a",
+                "reference": "e882d462a2a93aa7cae9dff7d976840cb9cfc05a",
+                "shasum": ""
             },
             "require": {
                 "illuminate/http": "^9.0|^10.0|^11.0|^12.0",
@@ -39,10 +45,11 @@
                 "MIT"
             ],
             "description": "AI Store Health Monitor SDK for Laravel",
-            "transport-options": {
-                "symlink": true,
-                "relative": false
-            }
+            "support": {
+                "source": "https://github.com/vyasvatsal/aihealth-laravel-sdk/tree/v1.0.0",
+                "issues": "https://github.com/vyasvatsal/aihealth-laravel-sdk/issues"
+            },
+            "time": "2026-02-24T05:57:10+00:00"
         },
         {
             "name": "brick/math",
