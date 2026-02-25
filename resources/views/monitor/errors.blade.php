@@ -136,8 +136,11 @@
             </div>
 
             <!-- Main Content Area (Split View) -->
+            <script>
+                window.healthMonitorInitialErrors = {!! json_encode($errors, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) !!};
+            </script>
             <div class="flex-1 bg-[#1e293b] rounded-xl border border-white/10 overflow-hidden flex flex-col"
-                x-data="errorMonitor(JSON.parse($el.dataset.errors || '[]'))" data-errors="{{ json_encode($errors) }}">
+                x-data="errorMonitor(window.healthMonitorInitialErrors)">
 
                 <!-- Toolbar -->
                 <div
