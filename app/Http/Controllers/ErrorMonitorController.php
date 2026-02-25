@@ -7,6 +7,7 @@ use App\Models\Store;
 use App\Models\ErrorGroup;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class ErrorMonitorController extends Controller
 {
@@ -83,7 +84,10 @@ class ErrorMonitorController extends Controller
         // We'll pass the paginated collection directly, but we map it to a format the frontend expects
         $formattedErrors = $errorGroups->getCollection()->map(function ($group) {
             $latestEvent = $group->events->first();
-            $payload = is_string($latestEvent?->payload) ? json_decode($latestEvent?->payload, true) : ($latestEvent?->payload ?? []);
+            $payload = [];
+            if ($latestEvent) {
+                $payload = is_string($latestEvent->payload) ? json_decode($latestEvent->payload, true) : ($latestEvent->payload ?? []);
+            }
 
             // Determine severity/type from the group title or event payload
             $type = $payload['type'] ?? 'Error';
@@ -91,43 +95,51 @@ class ErrorMonitorController extends Controller
             // Attempt to resolve real types for logs out of the payload
             $level = null;
             if ($type === 'log') {
-                $level = $payload['context']['level'] ?? 'info';
+                $level = $payload['level'] ?? $payload['context']['level'] ?? 'info';
             }
 
             // Assign severity
             $severity = 'info';
-            if (in_array($type, ['javascript_error', 'promise_rejection', 'Error', 'Exception'])) {
+            if (in_array(strtolower($type), ['javascript_error', 'promise_rejection', 'error', 'exception']) || Str::endsWith(strtolower($type), 'exception')) {
                 $severity = 'critical';
-            } elseif (in_array($type, ['network_error', 'resource_error', 'Warning']) || $level === 'warning') {
+            } elseif (in_array(strtolower($type), ['network_error', 'resource_error', 'warning']) || $level === 'warning') {
                 $severity = 'warning';
             } elseif ($level === 'error' || $level === 'critical' || $level === 'emergency') {
                 $severity = 'critical';
             }
 
-            $aiSolution = is_string($group->ai_analysis) ? json_decode($group->ai_analysis, true) : ($group->ai_analysis ?? null);
+            $aiAnalysis = is_string($group->ai_analysis) ? json_decode($group->ai_analysis, true) : ($group->ai_analysis ?? null);
+
+            // Safe fallbacks
+            $message = $aiAnalysis['title'] ?? $group->title ?? 'Unknown Error';
+            $raw_message = $group->title ?? 'Unknown Error';
+            $file = $payload['file'] ?? $payload['exception']['file'] ?? 'unknown';
+            $line = $payload['line'] ?? $payload['exception']['line'] ?? 0;
+            $trace = $latestEvent?->stack_trace ?? $payload['exception']['trace'] ?? '';
+            $browser = $payload['userAgent'] ?? $payload['device']['userAgent'] ?? 'Backend Server';
 
             return [
                 'id' => $group->id,
                 'type' => $type ?? 'Error',
                 'level' => $level,
-                'message' => $aiSolution['title'] ?? $group->title ?? 'Unknown Error',
-                'raw_message' => $group->title ?? 'Unknown Error',
-                'file' => $payload['file'] ?? 'unknown',
-                'line' => $payload['line'] ?? 0,
-                'trace' => $latestEvent?->stack_trace ?? '',
-                'timestamp' => $group->last_seen_at->diffForHumans(),
-                'status' => $group->status,
+                'message' => $message,
+                'raw_message' => $raw_message,
+                'file' => $file,
+                'line' => $line,
+                'trace' => $trace,
+                'timestamp' => $group->last_seen_at ? $group->last_seen_at->diffForHumans() : 'Just now',
+                'status' => $group->status ?? 'new',
                 'severity' => $severity,
                 'users_impacted' => $group->count > 0 ? $group->count : 1, // Simplified metric
-                'browser' => $payload['userAgent'] ?? 'Unknown',
-                'occurrences' => $group->count,
-                'ai_analysis' => $aiSolution ? [
+                'browser' => $browser,
+                'occurrences' => $group->count ?? 1,
+                'ai_analysis' => $aiAnalysis ? [
                     'severity_score' => $severity === 'critical' ? 9 : ($severity === 'warning' ? 6 : 3), // Mock score
-                    'title' => $aiSolution['title'] ?? 'Error',
-                    'summary' => $aiSolution['explanation'] ?? '',
-                    'root_cause' => $aiSolution['explanation'] ?? '',
-                    'code_fix' => $aiSolution['fix'] ?? '',
-                    'solution_steps' => [$aiSolution['fix'] ?? 'Please review the error trace.'],
+                    'title' => $aiAnalysis['title'] ?? 'Error Detected',
+                    'summary' => $aiAnalysis['explanation'] ?? '',
+                    'root_cause' => $aiAnalysis['explanation'] ?? '',
+                    'code_fix' => $aiAnalysis['fix'] ?? '',
+                    'solution_steps' => [$aiAnalysis['fix'] ?? 'Please review the error trace.'],
                     'prevention' => 'Monitor this code path for similar issues.',
                 ] : null
             ];
@@ -140,7 +152,7 @@ class ErrorMonitorController extends Controller
             'allStores' => $allStores,
             'currentStore' => $store,
             'stats' => $stats,
-            'errors' => $formattedErrors, // Formatted array for Alpine
+            'errors' => $formattedErrors->values()->toArray(), // Formatted array for Alpine MUST be unkeyed
             'paginator' => $errorGroups // For links()
         ]);
     }
