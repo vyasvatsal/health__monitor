@@ -108,10 +108,10 @@ class ErrorMonitorController extends Controller
 
             return [
                 'id' => $group->id,
-                'type' => $type,
+                'type' => $type ?? 'Error',
                 'level' => $level,
-                'message' => $aiSolution['title'] ?? $group->title,
-                'raw_message' => $group->title,
+                'message' => $aiSolution['title'] ?? $group->title ?? 'Unknown Error',
+                'raw_message' => $group->title ?? 'Unknown Error',
                 'file' => $payload['file'] ?? 'unknown',
                 'line' => $payload['line'] ?? 0,
                 'trace' => $latestEvent?->stack_trace ?? '',
