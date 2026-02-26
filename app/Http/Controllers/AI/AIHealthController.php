@@ -28,13 +28,20 @@ class AIHealthController extends Controller
         // 1. Build System Context (Real-time Errors/Incidents)
         $systemContext = $this->contextBuilder->build();
 
-        // 2. Build Store Context
-        $storeContext = "Target Store Metrics:\n";
+        $storeName = $data['store_name'] ?? 'Target Store';
+        $storeContext = "Metrics for {$storeName}:\n";
         $storeContext .= "- Score: " . ($data['score'] ?? 'N/A') . "/100\n";
         $storeContext .= "- Performance: " . ($data['performance_score'] ?? 'N/A') . "%\n";
         $storeContext .= "- UX: " . ($data['ux_score'] ?? 'N/A') . "%\n";
         $storeContext .= "- Trust: " . ($data['trust_score'] ?? 'N/A') . "%\n";
         $storeContext .= "- SEO: " . ($data['seo_score'] ?? 'N/A') . "%\n";
+        
+        if (isset($data['server_health'])) {
+            $sh = $data['server_health'];
+            $storeContext .= "- Server CPU Load: " . ($sh['cpu_load'] ?? 'N/A') . "\n";
+            $storeContext .= "- Server Memory: " . ($sh['memory_usage_mb'] ?? 'N/A') . " MB\n";
+            $storeContext .= "- DB Connection: " . (($sh['db_connected'] ?? false) === 'true' || $sh['db_connected'] === true ? 'Connected' : 'Disconnected') . "\n";
+        }
 
         if (!empty($data['issues'])) {
             $storeContext .= "- Key Issues: " . implode(', ', $data['issues']) . "\n";

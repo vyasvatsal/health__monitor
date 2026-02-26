@@ -795,16 +795,24 @@
 
             // Gather Data
             const healthData = {
-                store_name: '{{ auth()->user()->name }}\'s Store',
+                store_name: '{{ addslashes($currentStore->name ?? 'Project') }}',
+                url: '{{ addslashes($currentStore->domain ?? 'Unknown Domain') }}',
                 score: {{ optional($healthScore)->score ?? 0 }},
                 performance_score: {{ $metrics['performance'] ?? 0 }},
                 ux_score: {{ $metrics['ux'] ?? 0 }},
                 trust_score: {{ $metrics['trust'] ?? 0 }},
                 seo_score: {{ $metrics['seo'] ?? 0 }},
+                server_health: {
+                    cpu_load: {{ is_array(optional($systemHealth)['cpu_load']) ? optional($systemHealth)['cpu_load'][0] : (optional($systemHealth)['cpu_load'] ?? 'null') }},
+                    memory_usage_mb: {{ optional($systemHealth)['memory_usage_mb'] ?? 'null' }},
+                    db_connected: {{ optional($systemHealth)['db_connected'] ? 'true' : 'false' }}
+                },
                 issues: [
                     @if(($revenueLoss['excess_ms'] ?? 0) > 0) 'High Latency ({{ $revenueLoss['excess_ms'] ?? 0 }}ms excess)', @endif
                     @if(($errorRate ?? 0) > 0.01) 'Elevated Error Rate', @endif
-                                                            ],
+                    @if(isset($systemHealth) && !$systemHealth['db_connected']) 'Database Connection Failed', @endif
+                    @if(isset($systemHealth) && is_array($systemHealth['cpu_load']) && $systemHealth['cpu_load'][0] > 70) 'High CPU Utilization', @endif
+                ],
                 recent_alerts: @json($recentAlerts->pluck('title')->take(5))
             };
 
