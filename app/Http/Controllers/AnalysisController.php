@@ -12,61 +12,88 @@ use App\Services\AI\GeminiService;
 class AnalysisController extends Controller
 {
     /**
-     * Display the GTmetrix-style report.
+     * Display the GTmetrix-style batch report.
      */
     public function show(Store $store)
     {
-        // Get latest analysis
-        $analysis = $store->analyses()->latest()->first();
+        // Get the most recent analysis to find the latest batch_id
+        $latestRecord = $store->analyses()->latest()->first();
 
-        // If no analysis exists, return a view asking them to run one
-        if (!$analysis) {
+        if (!$latestRecord) {
             return view('analysis.empty', compact('store'));
         }
 
-        return view('analysis.show', compact('store', 'analysis'));
+        $batchId = $latestRecord->batch_id;
+        $batchAnalyses = $store->analyses()->where('batch_id', $batchId)->get();
+
+        // Check if jobs are still running (we expect 4 pages scanned based on the controller logic)
+        // If there are less than 4, or if ai_insights is null on the First record but jobs are done, we process.
+        $isProcessing = $batchAnalyses->count() < 4;
+
+        $masterInsights = null;
+
+        if (!$isProcessing && count($batchAnalyses) > 0) {
+            // Check if we've already generated the Master AI insights for this batch
+            // We usually store the master insight on the 'first' record of the batch
+            $firstRecord = $batchAnalyses->first();
+            
+            if (empty($firstRecord->ai_insights)) {
+                // All jobs done, but no master AI synthesis yet. Run it now synchronously.
+                $aiService = new GeminiService();
+                $masterInsightsText = $aiService->analyzeBatch($batchAnalyses->toArray());
+                
+                // Save it down to the first record so we don't re-run it
+                $firstRecord->update([
+                    'ai_insights' => ['insight_text' => $masterInsightsText]
+                ]);
+                
+                $masterInsights = ['insight_text' => $masterInsightsText];
+            } else {
+                $masterInsights = $firstRecord->ai_insights;
+            }
+        }
+
+        return view('analysis.show', compact('store', 'batchAnalyses', 'isProcessing', 'masterInsights'));
     }
 
     /**
-     * Trigger a new Lighthouse deep scan.
+     * Trigger a bulk Lighthouse deep scan.
      */
     public function store(Request $request, Store $store)
     {
-        $url = $store->domain ?? $request->input('url');
+        $baseUrl = $store->domain ?? $request->input('url');
 
-        if (!$url) {
+        if (!$baseUrl) {
             return back()->with('error', 'No domain configured for this store.');
         }
 
         // Add scheme if missing
-        if (!str_starts_with($url, 'http://') && !str_starts_with($url, 'https://')) {
-            $url = 'https://' . $url;
+        if (!str_starts_with($baseUrl, 'http://') && !str_starts_with($baseUrl, 'https://')) {
+            $baseUrl = 'https://' . $baseUrl;
         }
 
-        $scanner = new LighthouseScanner();
-        $scanData = $scanner->scan($url);
+        $baseUrl = rtrim($baseUrl, '/');
 
-        if (!$scanData) {
-            return back()->with('error', 'Lighthouse scan failed. The URL might be unreachable.');
+        // For V1 of bulk scanning, we will scan the Homepage and append a few common sub-paths
+        // In V2, we would parse the sitemap.xml to find the highest-priority URLs
+        $urlsToScan = [
+            $baseUrl,
+            $baseUrl . '/shop',
+            $baseUrl . '/about',
+            $baseUrl . '/contact',
+        ];
+
+        // Ensure we only scan unique URLs (in case of weird trailing slashes)
+        $urlsToScan = array_unique($urlsToScan);
+
+        $batchId = (string) \Illuminate\Support\Str::uuid();
+
+        foreach ($urlsToScan as $url) {
+            \App\Jobs\RunLighthouseScanJob::dispatch($store->id, $url, $batchId);
         }
 
-        // Run AI Analysis
-        $aiService = new GeminiService();
-        $aiInsightsText = $aiService->analyzeDeepScan($scanData);
-
-        // Save to DB
-        $analysis = Analysis::create([
-            'store_id' => $store->id,
-            'url' => $url,
-            'performance_score' => $scanData['scores']['performance'] ?? 0,
-            'accessibility_score' => $scanData['scores']['accessibility'] ?? 0,
-            'best_practices_score' => $scanData['scores']['best_practices'] ?? 0,
-            'seo_score' => $scanData['scores']['seo'] ?? 0,
-            'core_web_vitals' => $scanData['web_vitals'] ?? [],
-            'ai_insights' => ['insight_text' => $aiInsightsText], // Stored as array due to JSON cast
-            'desktop_screenshot' => $scanData['screenshot'], // Huge base64 string
-        ]);
-
-        return redirect()->route('analysis.show', $store->id)->with('success', 'Deep Scan Complete!');
+        // We redirect immediately while jobs run in the background
+        return redirect()->route('analysis.show', $store->id)
+            ->with('success', 'Deep Scan Initiated! We are analyzing ' . count($urlsToScan) . ' pages in the background. Check back in a few minutes for the master report.');
     }
 }

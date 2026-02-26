@@ -122,6 +122,43 @@ class GeminiService
         }
     }
 
+    /**
+     * Analyze a batch of deep scan (Lighthouse) data and return aggregated UX/CTA insights.
+     */
+    public function analyzeBatch(array $batchData)
+    {
+        if (!$this->apiKey) {
+            return "AI Analysis Unavailable: Google API Key not configured.";
+        }
+
+        $prompt = $this->buildBatchPrompt($batchData);
+
+        try {
+            $response = Http::timeout(120)->withHeaders([
+                'Content-Type' => 'application/json',
+            ])->post("{$this->baseUrl}?key={$this->apiKey}", [
+                        'contents' => [
+                            [
+                                'parts' => [
+                                    ['text' => $prompt]
+                                ]
+                            ]
+                        ]
+                    ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                return $data['candidates'][0]['content']['parts'][0]['text'] ?? 'No analysis generated.';
+            }
+
+            Log::error('Gemini API Error (Batch Scan): ' . $response->body());
+            return "Unable to generate batch scan analysis at this time.";
+        } catch (\Exception $e) {
+            Log::error('Gemini Service Exception (Batch Scan): ' . $e->getMessage());
+            return "Error connecting to AI service for batch scan.";
+        }
+    }
+
     protected function buildDeepScanPrompt(array $data)
     {
         // Convert the AI feed (opportunities/issues from Lighthouse) to a readable string
@@ -157,5 +194,32 @@ class GeminiService
         3. **Top 3 Technical Fixes**: List the 3 most urgent technical fixes from the opportunities list above, explaining *why* they matter to the user in plain English (not just developer jargon). 
 
         *Important: Format the output in clean, modern Markdown. Do not use generic fluff. Be highly specific, authoritative, and focused on revenue/conversion optimization.*";
+    }
+
+    protected function buildBatchPrompt(array $batchData)
+    {
+        $promptContext = "You are an elite eCommerce UX and Conversion Rate Optimization AI expert. You are analyzing a BATCH report of multiple pages across a single storefront. Your goal is to provide a master CTA and Layout Strategy for the entire site based on these aggregated vitals.\n\n";
+        
+        $promptContext .= "### Scanned Pages Data:\n";
+        foreach ($batchData as $page) {
+            $promptContext .= "- **URL:** {$page['url']}\n";
+            $promptContext .= "  - Performance: {$page['performance_score']}/100 | Accessibility: {$page['accessibility_score']}/100\n";
+            $promptContext .= "  - LCP: " . ($page['core_web_vitals']['lcp']['displayValue'] ?? 'N/A') . " | CLS: " . ($page['core_web_vitals']['cls']['displayValue'] ?? 'N/A') . "\n";
+            
+            if (!empty($page['ai_feed'])) {
+                $topIssue = collect($page['ai_feed'])->first();
+                $promptContext .= "  - Top Issue: " . ($topIssue['title'] ?? 'N/A') . " (Saves ~" . ($topIssue['savings_ms'] ?? 0) . "ms)\n";
+            }
+            $promptContext .= "\n";
+        }
+
+        $promptContext .= "### Request:\n";
+        $promptContext .= "1. **Sitewide Verdict**: A 2-sentence summary of the site's overall conversion health based on the speed and stability of the pages scanned.\n";
+        $promptContext .= "2. **Global CTA Strategy**: Where should they place and how should they design their primary Buttons/CTAs across the funnel (Home -> Shop -> Contact) to maximize conversions given their current speed (LCP) and visual shift (CLS) traits? Be very specific.\n";
+        $promptContext .= "3. **Worst Performing Area**: Identify the page or specific technical issue that is causing the biggest bottleneck in the funnel and explain how fixing it will lift revenue.\n\n";
+        
+        $promptContext .= "*Important: Format output in clean Markdown. Be highly actionable.*";
+
+        return $promptContext;
     }
 }

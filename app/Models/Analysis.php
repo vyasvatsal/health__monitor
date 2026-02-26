@@ -8,6 +8,7 @@ class Analysis extends Model
 {
     protected $fillable = [
         'store_id',
+        'batch_id',
         'url',
         'performance_score',
         'accessibility_score',
@@ -15,6 +16,7 @@ class Analysis extends Model
         'seo_score',
         'core_web_vitals',
         'ai_insights',
+        'ai_feed',
         'desktop_screenshot',
         'mobile_screenshot',
     ];
@@ -22,6 +24,7 @@ class Analysis extends Model
     protected $casts = [
         'core_web_vitals' => 'array',
         'ai_insights' => 'array',
+        'ai_feed' => 'array',
     ];
 
     public function store()
