@@ -96,7 +96,8 @@
 composer require aihealth/laravel-sdk
 
 # Add these to your .env file
-AIHEALTH_DSN=http://{{ $store->public_key ?? $store->api_key }}@{{ request()->getHost() }}{{ request()->getPort() ? ':' . request()->getPort() : '' }}/api/ingest
+AIHEALTH_DSN={{ rtrim(config('app.url'), '/') }}/api/ingest
+AIHEALTH_PROJECT_KEY={{ $store->public_key ?? $store->api_key }}
 AIHEALTH_PROJECT_ID={{ $store->id }}</pre>
                         </div>
                     </div>
