@@ -92,10 +92,13 @@
                                 </button>
                             </div>
                             <pre id="install-code"
-                                class="font-mono text-sm text-blue-300 bg-[#0f172a] p-4 rounded-lg overflow-x-auto border border-white/5 select-all"># Install via Composer
-composer require aihealth/laravel-sdk
+                                class="font-mono text-sm text-blue-300 bg-[#0f172a] p-4 rounded-lg overflow-x-auto border border-white/5 select-all"># 1. Add Repository
+composer config repositories.aihealth-sdk vcs https://github.com/vyasvatsal/aihealth-laravel-sdk.git
 
-# Add these to your .env file
+# 2. Install via Composer
+composer require aihealth/laravel-sdk:dev-main
+
+# 3. Add these to your .env file
 AIHEALTH_DSN={{ rtrim(config('app.url'), '/') }}/api/ingest
 AIHEALTH_PROJECT_KEY={{ $store->public_key ?? $store->api_key }}
 AIHEALTH_PROJECT_ID={{ $store->id }}</pre>

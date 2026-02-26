@@ -154,6 +154,23 @@ class DashboardController extends Controller
             }
         });
 
+        // 12. SDK System Health Analysis
+        $systemHealthCheck = HealthCheck::where('store_id', $store->id)
+            ->where('type', 'system')
+            ->with(['latestResult'])
+            ->first();
+
+        $systemHealth = null;
+        if ($systemHealthCheck && $systemHealthCheck->latestResult) {
+            $payload = $systemHealthCheck->latestResult->payload ?? [];
+            $systemHealth = [
+                'cpu_load' => $payload['cpu_load'] ?? null,
+                'memory_usage_mb' => $payload['memory_usage_mb'] ?? null,
+                'db_connected' => $payload['db_connected'] ?? false,
+                'last_checked' => $systemHealthCheck->latestResult->created_at->diffForHumans()
+            ];
+        }
+
         return view('dashboard', [
             'totalRequests' => number_format($totalRequests),
             'avgLatency' => $avgLatency,
@@ -171,6 +188,7 @@ class DashboardController extends Controller
             'allStores' => $allStores,
             'currentStore' => $store,
             'aiHealth' => $aiHealth, // Pass AI Health Status
+            'systemHealth' => $systemHealth, // Pass SDK System Health
         ]);
     }
 }

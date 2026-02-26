@@ -552,6 +552,72 @@
                 </div>
 
                 <!-- System Status -->
+                <!-- System Health Metrics -->
+                <div class="bg-[#1e293b] overflow-hidden shadow-sm rounded-lg border border-white/10 mb-6">
+                    <div class="p-4 border-b border-white/5 flex justify-between items-center">
+                        <h3 class="text-base font-semibold text-white flex items-center gap-2">
+                            <svg class="w-5 h-5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+                            </svg>
+                            Server Health Analytics
+                        </h3>
+                        @if($systemHealth)
+                            <span class="text-xs text-slate-500 font-mono">Updated {{ $systemHealth['last_checked'] }}</span>
+                        @endif
+                    </div>
+                    <div class="p-5">
+                        @if($systemHealth)
+                            <div
+                                class="grid grid-cols-1 gap-4 divide-y divide-white/5 sm:grid-cols-3 sm:divide-y-0 sm:divide-x">
+                                <!-- CPU -->
+                                <div class="px-4 py-3 sm:py-0">
+                                    <dt class="text-xs font-medium text-slate-400 uppercase tracking-wider">CPU Load</dt>
+                                    <dd class="mt-2 flex items-baseline gap-2">
+                                        <span
+                                            class="text-2xl font-bold tracking-tight text-white">{{ is_array($systemHealth['cpu_load']) ? number_format($systemHealth['cpu_load'][0], 2) : ($systemHealth['cpu_load'] ?? 'N/A') }}</span>
+                                        <span class="text-sm font-medium text-slate-500">1m avg</span>
+                                    </dd>
+                                </div>
+                                <!-- Memory -->
+                                <div class="px-4 py-3 sm:py-0">
+                                    <dt class="text-xs font-medium text-slate-400 uppercase tracking-wider">Memory Usage</dt>
+                                    <dd class="mt-2 flex items-baseline gap-2">
+                                        <span
+                                            class="text-2xl font-bold tracking-tight text-white">{{ number_format($systemHealth['memory_usage_mb'] ?? 0, 1) }}</span>
+                                        <span class="text-sm font-medium text-slate-500">MB</span>
+                                    </dd>
+                                </div>
+                                <!-- Database -->
+                                <div class="px-4 py-3 sm:py-0">
+                                    <dt class="text-xs font-medium text-slate-400 uppercase tracking-wider">Database</dt>
+                                    <dd class="mt-2 flex items-center gap-2">
+                                        @if($systemHealth['db_connected'])
+                                            <div class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                                            <span class="text-lg font-bold tracking-tight text-emerald-400">Connected</span>
+                                        @else
+                                            <div class="w-2.5 h-2.5 rounded-full bg-red-500"></div>
+                                            <span class="text-lg font-bold tracking-tight text-red-400">Disconnected</span>
+                                        @endif
+                                    </dd>
+                                </div>
+                            </div>
+                        @else
+                            <div class="text-center py-6">
+                                <svg class="mx-auto h-12 w-12 text-slate-500 mb-3" fill="none" viewBox="0 0 24 24"
+                                    stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                        d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                </svg>
+                                <p class="text-sm text-slate-400 mb-2">No system health data found for this project.</p>
+                                <p class="text-xs text-slate-500">Install the Laravel SDK and run <code
+                                        class="bg-slate-800 text-emerald-400 px-1 py-0.5 rounded">php artisan aihealth:health</code>
+                                </p>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+
                 <div class="bg-[#1e293b] overflow-hidden shadow-sm rounded-lg border border-white/10">
                     <div class="p-4 border-b border-white/5">
                         <h3 class="text-base font-semibold text-white flex items-center gap-2">
@@ -738,7 +804,7 @@
                 issues: [
                     @if(($revenueLoss['excess_ms'] ?? 0) > 0) 'High Latency ({{ $revenueLoss['excess_ms'] ?? 0 }}ms excess)', @endif
                     @if(($errorRate ?? 0) > 0.01) 'Elevated Error Rate', @endif
-                                                        ],
+                                                            ],
                 recent_alerts: @json($recentAlerts->pluck('title')->take(5))
             };
 
