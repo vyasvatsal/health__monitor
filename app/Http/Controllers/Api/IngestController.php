@@ -20,18 +20,27 @@ class IngestController extends Controller
     {
         // 1. Authenticate via Header (extracted from DSN in the SDK Transport)
         $monitorKey = $request->header('X-Monitor-Key');
+        $projectId = $request->header('X-Project-Id');
 
         if (!$monitorKey) {
             return response()->json(['error' => 'Missing Project Key in DSN'], 401);
         }
 
-        $store = Store::where('public_key', $monitorKey)
-            ->orWhere('secret_key', $monitorKey)
-            ->orWhere('api_key', $monitorKey) // Fallback
-            ->first();
+        $query = Store::query()
+            ->where(function ($q) use ($monitorKey) {
+                $q->where('public_key', $monitorKey)
+                    ->orWhere('secret_key', $monitorKey)
+                    ->orWhere('api_key', $monitorKey);
+            });
+
+        if ($projectId) {
+            $query->where('id', $projectId);
+        }
+
+        $store = $query->first();
 
         if (!$store) {
-            return response()->json(['error' => 'Invalid Monitor Key'], 401);
+            return response()->json(['error' => 'Invalid Monitor Key or Project ID'], 401);
         }
 
         // 2. Validate Events Array
@@ -51,8 +60,32 @@ class IngestController extends Controller
 
         // 3. Process each event in the batch
         foreach ($events as $eventData) {
-            // Determine the type: exception or log or transaction
+            // Determine the type: exception or log or transaction or health
             $type = $eventData['type'] ?? 'log';
+
+            if ($type === 'health') {
+                $healthCheck = \App\Models\HealthCheck::firstOrCreate(
+                    [
+                        'store_id' => $store->id,
+                        'name' => 'System Health',
+                        'type' => 'system'
+                    ]
+                );
+
+                \App\Models\CheckResult::create([
+                    'health_check_id' => $healthCheck->id,
+                    'status' => ($eventData['db_connected'] ?? false) ? 'ok' : 'critical',
+                    'payload' => [
+                        'memory_usage_mb' => $eventData['memory_usage_mb'] ?? null,
+                        'cpu_load' => $eventData['cpu_load'] ?? null,
+                        'db_connected' => $eventData['db_connected'] ?? false,
+                    ],
+                    'created_at' => \Carbon\Carbon::parse($eventData['timestamp'] ?? now()),
+                ]);
+
+                $processedEvents[] = 'health_' . $healthCheck->id;
+                continue;
+            }
 
             if ($type === 'transaction') {
                 $txn = \App\Models\PerformanceTransaction::create([

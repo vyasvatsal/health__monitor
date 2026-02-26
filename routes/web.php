@@ -34,6 +34,38 @@ Route::get('/test-sdk', function () {
     throw new \Exception('This is a hard crash triggered from the web route to test the SDK Exception Handler');
 });
 
+Route::get('/test-health-ingest', function (\Illuminate\Http\Request $request) {
+    $store = \App\Models\Store::first();
+    if (!$store)
+        return ['error' => 'No store found'];
+
+    $payload = [
+        'events' => [
+            [
+                'type' => 'health',
+                'timestamp' => now()->toISOString(),
+                'memory_usage_mb' => 25.5,
+                'cpu_load' => 1.2,
+                'db_connected' => true,
+            ]
+        ]
+    ];
+
+    $req = \Illuminate\Http\Request::create('/api/ingest', 'POST', [], [], [], [
+        'HTTP_X-Monitor-Key' => $store->public_key ?? $store->api_key,
+        'HTTP_X-Project-Id' => $store->id,
+        'CONTENT_TYPE' => 'application/json',
+    ], json_encode($payload));
+
+    $response = app()->handle($req);
+    return [
+        'status' => $response->getStatusCode(),
+        'content' => json_decode($response->getContent()),
+        'health_checks' => \App\Models\HealthCheck::count(),
+        'check_results' => \App\Models\CheckResult::count(),
+    ];
+});
+
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('stores', App\Http\Controllers\StoreController::class);
     // Incidents (Phase 5)
