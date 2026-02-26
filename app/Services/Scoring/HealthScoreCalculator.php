@@ -145,8 +145,8 @@ class HealthScoreCalculator
     {
         $latest = HealthScore::where('store_id', $this->store->id)->latest()->first();
 
-        // If no score exists, or if the latest score is older than 1 hour, recalculate.
-        if (!$latest || $latest->created_at->lt(now()->subHour())) {
+        // If no score exists, or if the latest score is older than 1 minute, recalculate dynamically.
+        if (!$latest || $latest->created_at->lt(now()->subMinutes(1))) {
             return $this->calculate();
         }
 
