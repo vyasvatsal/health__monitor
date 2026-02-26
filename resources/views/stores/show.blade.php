@@ -79,25 +79,25 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
                                 </svg>
-                                Installation
+                                Laravel SDK Integration
                             </h3>
-                            <span class="text-xs text-slate-500">Paste in &lt;head&gt;</span>
+                            <span class="text-xs text-slate-500">Add to .env</span>
                         </div>
                         <div class="p-6 relative group">
                             <div class="absolute top-4 right-4">
                                 <button
                                     onclick="navigator.clipboard.writeText(document.getElementById('install-code').innerText)"
                                     class="px-3 py-1.5 bg-slate-800 hover:bg-emerald-600 text-white text-xs rounded-lg transition-all border border-white/10 opacity-0 group-hover:opacity-100 shadow-xl">
-                                    Copy Snippet
+                                    Copy snippet
                                 </button>
                             </div>
                             <pre id="install-code"
-                                class="font-mono text-sm text-blue-300 bg-[#0f172a] p-4 rounded-lg overflow-x-auto border border-white/5 select-all">&lt;script 
-    src="{{ url('/js/monitor-client.js') }}" 
-    data-key="{{ $store->api_key }}"
-    data-endpoint="{{ url('/api/v1/telemetry') }}"
-    async
-&gt;&lt;/script&gt;</pre>
+                                class="font-mono text-sm text-blue-300 bg-[#0f172a] p-4 rounded-lg overflow-x-auto border border-white/5 select-all"># Install via Composer
+composer require aihealth/laravel-sdk
+
+# Add these to your .env file
+AIHEALTH_DSN=http://{{ $store->public_key ?? $store->api_key }}@{{ request()->getHost() }}{{ request()->getPort() ? ':' . request()->getPort() : '' }}/api/ingest
+AIHEALTH_PROJECT_ID={{ $store->id }}</pre>
                         </div>
                     </div>
 
