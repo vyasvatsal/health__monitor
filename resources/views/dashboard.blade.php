@@ -150,7 +150,7 @@
                                     AI Health Score
                                 </div>
                                 <div class="text-2xl font-bold text-white tracking-tight">
-                                    {{ optional($healthScore)->score ?? 0 }}<span
+                                    {{ optional($healthScore)->score ?? 100 }}<span
                                         class="text-sm text-slate-500 font-normal">/100</span>
                                 </div>
                             </div>
@@ -166,7 +166,7 @@
                         <!-- Breakdown -->
                         <div class="mt-3 grid grid-cols-2 gap-2 text-[10px]">
                             @php
-                                $metrics = optional($healthScore)->metrics_json ?? [];
+                                $metrics = optional($healthScore)->metrics_json ?? ['performance' => 100, 'ux' => 100, 'conversion' => 100, 'trust' => 100];
                                 if (is_string($metrics))
                                     $metrics = json_decode($metrics, true); // Fallback for old records
                             @endphp
@@ -174,10 +174,10 @@
                                 <div class="flex flex-col">
                                     <span class="text-slate-500">{{ $label }}</span>
                                     <div class="w-full bg-slate-700 h-1 rounded-full mt-1">
-                                        <div class="bg-emerald-500 h-1 rounded-full" style="width: {{ $metrics[$key] ?? 0 }}%">
+                                        <div class="bg-emerald-500 h-1 rounded-full" style="width: {{ $metrics[$key] ?? 100 }}%">
                                         </div>
                                     </div>
-                                    <span class="text-emerald-400 font-medium mt-0.5">{{ $metrics[$key] ?? 0 }}%</span>
+                                    <span class="text-emerald-400 font-medium mt-0.5">{{ $metrics[$key] ?? 100 }}%</span>
                                 </div>
                             @endforeach
                         </div>
@@ -806,13 +806,13 @@
                     cpu_load: {{ is_array(optional($systemHealth)['cpu_load']) ? optional($systemHealth)['cpu_load'][0] : (optional($systemHealth)['cpu_load'] ?? 'null') }},
                     memory_usage_mb: {{ optional($systemHealth)['memory_usage_mb'] ?? 'null' }},
                     db_connected: {{ optional($systemHealth)['db_connected'] ? 'true' : 'false' }}
-                },
+                        },
                 issues: [
                     @if(($revenueLoss['excess_ms'] ?? 0) > 0) 'High Latency ({{ $revenueLoss['excess_ms'] ?? 0 }}ms excess)', @endif
                     @if(($errorRate ?? 0) > 0.01) 'Elevated Error Rate', @endif
                     @if(isset($systemHealth) && !$systemHealth['db_connected']) 'Database Connection Failed', @endif
                     @if(isset($systemHealth) && is_array($systemHealth['cpu_load']) && $systemHealth['cpu_load'][0] > 70) 'High CPU Utilization', @endif
-                ],
+                        ],
                 recent_alerts: @json($recentAlerts->pluck('title')->take(5))
             };
 
