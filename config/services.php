@@ -39,4 +39,9 @@ return [
         'key' => env('GEMINI_API_KEY_CHATBOT'),
     ],
 
+    'google' => [
+        'api_key' => env('GOOGLE_API_KEY'), // Used by GeminiService
+        'pagespeed_key' => env('GOOGLE_PAGESPEED_API_KEY'), // Used by LighthouseScanner
+    ],
+
 ];
