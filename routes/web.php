@@ -82,9 +82,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/settings/developer', [App\Http\Controllers\DeveloperController::class, 'index'])->name('settings.developer');
 
     // Global Settings (AI & SaaS)
+    Route::get('/settings', [App\Http\Controllers\SettingsController::class, 'index'])->name('settings.index');
+    Route::post('/settings', [App\Http\Controllers\SettingsController::class, 'update'])->name('settings.update');
+
+    // Benchmarks
     Route::get('/benchmarks', [App\Http\Controllers\StoreController::class, 'index'])->name('benchmarks.index');
     Route::get('/rum', [App\Http\Controllers\RumDashboardController::class, 'index'])->name('rum.index');
-    Route::post('/settings', [App\Http\Controllers\SettingsController::class, 'update'])->name('settings.update');
 
     // Benchmarks
     Route::resource('benchmarks', App\Http\Controllers\BenchmarkController::class)
