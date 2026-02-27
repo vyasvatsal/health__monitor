@@ -8,14 +8,17 @@
                 Deep UX & CTA Analysis - {{ $store->name }}
             </h2>
             <div class="flex items-center gap-3">
-                <span class="text-xs text-slate-400">Scanned: {{ $analysis->created_at->diffForHumans() }}</span>
-                <form method="POST" action="{{ route('analysis.store', $store->id) }}">
-                    @csrf
-                    <input type="hidden" name="url" value="{{ $analysis->url }}">
-                    <button type="submit" onclick="this.innerHTML='Re-scanning...'; this.classList.add('opacity-50');" class="bg-indigo-600 hover:bg-indigo-500 text-white text-sm px-4 py-2 rounded-lg font-medium transition-colors">
-                        Re-Scan Now
-                    </button>
-                </form>
+                @php $primaryPage = $batchAnalyses->first(); @endphp
+                @if($primaryPage)
+                    <span class="text-xs text-slate-400">Scanned: {{ $primaryPage->created_at->diffForHumans() }}</span>
+                    <form method="POST" action="{{ route('analysis.store', $store->id) }}">
+                        @csrf
+                        <input type="hidden" name="url" value="{{ $primaryPage->url }}">
+                        <button type="submit" onclick="this.innerHTML='Re-scanning...'; this.classList.add('opacity-50');" class="bg-indigo-600 hover:bg-indigo-500 text-white text-sm px-4 py-2 rounded-lg font-medium transition-colors">
+                            Re-Scan Now
+                        </button>
+                    </form>
+                @endif
             </div>
         </div>
     </x-slot>
