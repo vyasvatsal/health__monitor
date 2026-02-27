@@ -8,11 +8,19 @@ use App\Models\Store;
 
 class ConnectionGuideController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        // For simplicity, we grab the first store since it's a single-user dashboard setup
-        $store = Store::first();
+        $stores = Store::orderBy('name')->get();
 
-        return view('settings.connection', compact('store'));
+        // If they requested a specific store, or default to the first one
+        $activeStoreId = $request->query('store_id');
+
+        if ($activeStoreId) {
+            $store = $stores->where('id', $activeStoreId)->first();
+        } else {
+            $store = $stores->first();
+        }
+
+        return view('settings.connection', compact('store', 'stores'));
     }
 }

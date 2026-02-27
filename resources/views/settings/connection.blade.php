@@ -23,11 +23,32 @@
                     and AI Performance Analytics.</p>
             </div>
 
-            @if(!$store)
+            @if($stores->isEmpty())
                 <div class="bg-red-500/10 border border-red-500/30 rounded-lg p-6 text-center">
                     <p class="text-red-400">No projects found. Please create a project first.</p>
                 </div>
             @else
+
+                <!-- Project Selector Dropdown -->
+                <div
+                    class="bg-[#1e293b] border border-white/5 rounded-lg p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <label for="project_select" class="block text-sm font-medium text-slate-400">Select Project to
+                            Configure</label>
+                        <p class="text-xs text-slate-500 mt-1">Each project requires its own unique API and Tracking Keys.</p>
+                    </div>
+
+                    <form action="{{ route('settings.connection') }}" method="GET" class="w-full sm:w-auto">
+                        <select id="project_select" name="store_id" onchange="this.form.submit()"
+                            class="w-full sm:w-64 bg-slate-900 border border-slate-700 text-white text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2.5">
+                            @foreach($stores as $s)
+                                <option value="{{ $s->id }}" {{ $store->id === $s->id ? 'selected' : '' }}>
+                                    {{ $s->name }} ({{ parse_url($s->url, PHP_URL_HOST) ?? $s->url }})
+                                </option>
+                            @endforeach
+                        </select>
+                    </form>
+                </div>
 
                 <!-- Keys Section -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -104,12 +125,12 @@
                                     class="text-white">.env</code> file of your target Laravel project.</p>
                             <div class="bg-slate-900 rounded-lg p-4 border border-slate-800 overflow-x-auto">
                                 <pre><code class="text-blue-300 font-mono text-sm">AIHEALTH_ENDPOINT={{ url('/api/ingest') }}
-                        AIHEALTH_RUM_ENDPOINT={{ url('/api/v1/metrics/track') }}
+                                AIHEALTH_RUM_ENDPOINT={{ url('/api/v1/metrics/track') }}
 
-                        <span class="text-emerald-400">AIHEALTH_DSN={{ $store->api_key }}</span>
-                        AIHEALTH_PROJECT_ID={{ $store->id }}
+                                <span class="text-emerald-400">AIHEALTH_DSN={{ $store->api_key }}</span>
+                                AIHEALTH_PROJECT_ID={{ $store->id }}
 
-                        <span class="text-purple-400">AIHEALTH_PRIVATE_TRACKING_KEY={{ $store->private_tracking_key }}</span></code></pre>
+                                <span class="text-purple-400">AIHEALTH_PRIVATE_TRACKING_KEY={{ $store->private_tracking_key }}</span></code></pre>
                             </div>
                         </div>
 
