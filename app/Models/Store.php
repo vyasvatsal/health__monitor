@@ -11,6 +11,23 @@ class Store extends Model
 
     protected $guarded = [];
 
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($store) {
+            if (empty($store->api_key)) {
+                $store->api_key = 'sk_live_' . bin2hex(random_bytes(16));
+            }
+            if (empty($store->public_key)) {
+                $store->public_key = 'pk_live_' . bin2hex(random_bytes(16));
+            }
+            if (empty($store->private_tracking_key)) {
+                $store->private_tracking_key = 'rum_' . bin2hex(random_bytes(16));
+            }
+        });
+    }
+
     public function user()
     {
         return $this->belongsTo(User::class);
