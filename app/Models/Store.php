@@ -30,9 +30,4 @@ class Store extends Model
     {
         return $this->hasMany(ErrorGroup::class);
     }
-
-    public function analyses()
-    {
-        return $this->hasMany(Analysis::class);
-    }
 }

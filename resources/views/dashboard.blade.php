@@ -63,16 +63,6 @@
                         </svg>
                         Report Incident
                     </a>
-                    @if($currentStore)
-                        <a href="{{ route('analysis.show', $currentStore->id) }}"
-                            class="px-4 py-2 bg-[#1e293b] hover:bg-[#334155] text-white text-sm font-medium rounded-lg border border-slate-700 transition-all flex items-center gap-2">
-                            <svg class="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2-2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                            </svg>
-                            Deep UX Scan
-                        </a>
-                    @endif
                     <button onclick="analyzeStoreHealth()"
                         class="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-sm font-bold rounded-lg shadow-lg shadow-purple-500/20 flex items-center gap-2 transition-all hover:scale-105">
                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -817,13 +807,13 @@
                     cpu_load: {{ is_array(optional($systemHealth)['cpu_load']) ? optional($systemHealth)['cpu_load'][0] : (optional($systemHealth)['cpu_load'] ?? 'null') }},
                     memory_usage_mb: {{ optional($systemHealth)['memory_usage_mb'] ?? 'null' }},
                     db_connected: {{ optional($systemHealth)['db_connected'] ? 'true' : 'false' }}
-                            },
+                                },
                 issues: [
                     @if(($revenueLoss['excess_ms'] ?? 0) > 0) 'High Latency ({{ $revenueLoss['excess_ms'] ?? 0 }}ms excess)', @endif
                     @if(($errorRate ?? 0) > 0.01) 'Elevated Error Rate', @endif
                     @if(isset($systemHealth) && !$systemHealth['db_connected']) 'Database Connection Failed', @endif
                     @if(isset($systemHealth) && is_array($systemHealth['cpu_load']) && $systemHealth['cpu_load'][0] > 70) 'High CPU Utilization', @endif
-                            ],
+                                ],
                 recent_alerts: @json($recentAlerts->pluck('title')->take(5))
             };
 

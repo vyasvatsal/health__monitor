@@ -69,10 +69,6 @@ Route::get('/test-health-ingest', function (\Illuminate\Http\Request $request) {
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('stores', App\Http\Controllers\StoreController::class);
 
-    // Deep Scan Analysis
-    Route::get('/stores/{store}/analysis', [\App\Http\Controllers\AnalysisController::class, 'show'])->name('analysis.show');
-    Route::post('/stores/{store}/analysis', [\App\Http\Controllers\AnalysisController::class, 'store'])->name('analysis.store');
-
     // Incidents (Phase 5)
     Route::resource('incidents', App\Http\Controllers\IncidentController::class);
 
