@@ -21,13 +21,19 @@ class LighthouseScanner
         $apiKey = config('services.google.pagespeed_key');
 
         try {
-            $response = Http::timeout(60)->get($this->apiUrl, [
+            // Manually build query string because Google expects repeated category= arguments without array indices
+            $queryString = http_build_query([
                 'url' => $url,
                 'strategy' => $strategy,
-                // Request specific categories to save bandwidth
-                'category' => ['performance', 'accessibility', 'best-practices', 'seo'],
                 'key' => $apiKey,
             ]);
+
+            $categories = ['performance', 'accessibility', 'best-practices', 'seo'];
+            foreach ($categories as $category) {
+                $queryString .= '&category=' . $category;
+            }
+
+            $response = Http::timeout(120)->get($this->apiUrl . '?' . $queryString);
 
             if ($response->failed()) {
                 Log::error("Lighthouse Scan Failed for {$url}: " . $response->body());
