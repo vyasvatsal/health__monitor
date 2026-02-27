@@ -21,4 +21,5 @@ Route::post('/ingest', [\App\Http\Controllers\Api\IngestController::class, 'stor
 
 Route::prefix('v1')->group(function () {
     Route::post('/metrics/track', [\App\Http\Controllers\Api\TrackingController::class, 'track']);
+    Route::post('/projects/routes/sync', [\App\Http\Controllers\Api\RouteSyncController::class, 'sync']);
 });

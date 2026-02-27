@@ -73,6 +73,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('incidents', App\Http\Controllers\IncidentController::class);
 
     // Settings
+    Route::get('/settings/connection', [App\Http\Controllers\ConnectionGuideController::class, 'index'])->name('settings.connection');
     Route::get('/settings/alerts', [App\Http\Controllers\AlertSettingsController::class, 'edit'])->name('settings.alerts');
     Route::patch('/settings/alerts', [App\Http\Controllers\AlertSettingsController::class, 'update'])->name('settings.alerts.update');
     Route::post('/settings/alerts/test', [App\Http\Controllers\AlertSettingsController::class, 'test'])->name('settings.alerts.test');

@@ -189,10 +189,24 @@
                 <div class="my-4 border-t border-white/5"></div>
 
                  <!-- Settings -->
-                <a href="{{ route('settings.alerts') }}" 
-                   class="sidebar-link group {{ request()->routeIs('settings.*') ? 'active' : '' }}"
+                <a href="{{ route('settings.connection') }}" 
+                   class="sidebar-link group {{ request()->routeIs('settings.connection*') ? 'active' : '' }}"
                    :class="sidebarCollapsed && isDesktop ? 'justify-center px-2' : ''"
-                   title="Settings">
+                   title="Connection Guide">
+                    <i class="material-icons text-[20px] transition-all duration-300" 
+                       :class="sidebarCollapsed && isDesktop ? 'mr-0' : 'mr-3'">cable</i>
+                    <span x-show="!sidebarCollapsed" class="whitespace-nowrap">Connection Guide</span>
+                    
+                    <div x-show="sidebarCollapsed && isDesktop"
+                        class="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-2 py-1 bg-slate-800 text-white text-xs rounded border border-white/10 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 whitespace-nowrap shadow-xl">
+                        Connection Guide
+                    </div>
+                </a>
+
+                <a href="{{ route('settings.alerts') }}" 
+                   class="sidebar-link group {{ request()->routeIs('settings.alerts*') ? 'active' : '' }}"
+                   :class="sidebarCollapsed && isDesktop ? 'justify-center px-2' : ''"
+                   title="Alert Settings">
                     <i class="material-icons text-[20px] transition-all duration-300" 
                        :class="sidebarCollapsed && isDesktop ? 'mr-0' : 'mr-3'">settings</i>
                     <span x-show="!sidebarCollapsed" class="whitespace-nowrap">Settings</span>

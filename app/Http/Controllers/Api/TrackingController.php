@@ -58,6 +58,8 @@ class TrackingController extends Controller
                 'grade' => null
             ]);
 
+            \App\Jobs\ProcessUrlGradeJob::dispatch($metric);
+
             return response()->json(['success' => true, 'id' => $metric->id], 201);
         } catch (\Exception $e) {
             Log::error('TrackingController Error: ' . $e->getMessage());
