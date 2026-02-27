@@ -163,6 +163,7 @@
                 @foreach([
                         ['url' => route('dashboard'), 'icon' => 'dashboard', 'label' => 'Dashboard', 'route' => 'dashboard'],
                         ['url' => route('stores.index'), 'icon' => 'inventory_2', 'label' => 'Projects', 'route' => 'stores*'],
+                        ['url' => route('rum.index'), 'icon' => 'touch_app', 'label' => 'Performance UX', 'route' => 'rum*'],
                         ['url' => route('benchmarks.index'), 'icon' => 'analytics', 'label' => 'Benchmarks', 'route' => 'benchmarks*'],
                         ['url' => route('incidents.index'), 'icon' => 'warning', 'label' => 'Incidents', 'route' => 'incidents*'],
                         ['url' => route('monitor.errors'), 'icon' => 'bug_report', 'label' => 'Error Detection', 'route' => 'monitor.errors*'],
