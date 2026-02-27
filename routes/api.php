@@ -19,3 +19,6 @@ Route::post('/v1/capture', [\App\Http\Controllers\TelemetryController::class, 'c
 Route::post('/v1/track', [\App\Http\Controllers\Api\ErrorTrackingController::class, 'store']);
 Route::post('/ingest', [\App\Http\Controllers\Api\IngestController::class, 'store']); // The SDK ingest endpoint
 
+Route::prefix('v1')->group(function () {
+    Route::post('/metrics/track', [\App\Http\Controllers\Api\TrackingController::class, 'track']);
+});
