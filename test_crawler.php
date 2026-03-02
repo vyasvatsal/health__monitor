@@ -18,7 +18,7 @@ if (!$store) {
 // We don't want to actually crawl a massive site during this verification, 
 // so we'll crawl localhost or a small test site if possible.
 // For now let's just observe what happens if we point it to itself.
-$store->domain = 'http://127.0.0.1:8002'; // Our local server
+$store->domain = 'http://127.0.0.1:8000'; // Billdesk local server
 $store->save();
 
 echo "Starting crawl for " . $store->domain . "...\n";
