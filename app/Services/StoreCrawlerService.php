@@ -110,9 +110,10 @@ class StoreCrawlerService
 
         $scheme = $parsed['scheme'] ?? 'https';
         $host = $parsed['host'];
+        $port = isset($parsed['port']) ? ':' . $parsed['port'] : '';
         $path = $parsed['path'] ?? '/';
 
-        $normalized = strtolower($scheme . '://' . $host . $path);
+        $normalized = strtolower($scheme . '://' . $host . $port . $path);
         if (isset($parsed['query'])) {
             $normalized .= '?' . $parsed['query'];
         }
@@ -180,6 +181,7 @@ class StoreCrawlerService
         if (!isset($baseParts['scheme'], $baseParts['host']))
             return false;
 
+        $port = isset($baseParts['port']) ? ':' . $baseParts['port'] : '';
         $basePath = $baseParts['path'] ?? '/';
         $basePath = preg_replace('#/[^/]*$#', '/', $basePath);
         $path = ($rel[0] === '/') ? $rel : ($basePath . $rel);
@@ -194,7 +196,7 @@ class StoreCrawlerService
             }
         }
 
-        return $baseParts['scheme'] . '://' . $baseParts['host'] . '/' . implode('/', $resolved);
+        return $baseParts['scheme'] . '://' . $baseParts['host'] . $port . '/' . implode('/', $resolved);
     }
 
     protected function extractTitle(string $html): ?string
@@ -244,6 +246,8 @@ class StoreCrawlerService
 
         // Find buttons
         foreach ($dom->getElementsByTagName('button') as $btn) {
+            if (!$btn instanceof \DOMElement)
+                continue;
             $ctas[] = [
                 'tag' => 'button',
                 'text' => trim(strip_tags($btn->textContent)) ?: ($btn->getAttribute('aria-label') ?: 'Button'),
@@ -254,6 +258,8 @@ class StoreCrawlerService
 
         // Find links
         foreach ($dom->getElementsByTagName('a') as $a) {
+            if (!$a instanceof \DOMElement)
+                continue;
             $ctas[] = [
                 'tag' => 'a',
                 'text' => trim(strip_tags($a->textContent)) ?: ($a->getAttribute('title') ?: ($a->getAttribute('aria-label') ?: 'Link')),
@@ -264,6 +270,8 @@ class StoreCrawlerService
 
         // Find inputs (submit buttons)
         foreach ($dom->getElementsByTagName('input') as $input) {
+            if (!$input instanceof \DOMElement)
+                continue;
             $type = strtolower($input->getAttribute('type'));
             if ($type === 'submit' || $type === 'button') {
                 $ctas[] = [
