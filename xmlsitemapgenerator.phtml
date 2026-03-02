@@ -1,0 +1,2581 @@
+<?php
+ini_set('max_execution_time', 80);
+ini_set('memory_limit', '512M');
+
+define('CRAWL_TIMEOUT_SECONDS', 60);
+define('USER_AGENT', 'SitemapGenerator/2.0 (+https://example.com)');
+
+// ============== METADATA CACHE ==============
+$GLOBALS['metadata_cache'] = [];
+
+function getPageMetadataOnce($url)
+{
+    if (isset($GLOBALS['metadata_cache'][$url])) {
+        return $GLOBALS['metadata_cache'][$url];
+    }
+
+    $meta = [
+        'lastmod' => null,
+        'changefreq' => 'monthly',
+        'priority' => 0.5
+    ];
+
+    // Try to get Last-Modified from headers (fast)
+    $headers = @get_headers($url, 1);
+    if (!empty($headers['Last-Modified'])) {
+        $meta['lastmod'] = date('c', strtotime($headers['Last-Modified']));
+    }
+
+    // Fetch HTML for meta tags
+    $html = @file_get_contents($url, false, stream_context_create([
+        'http' => [
+            'method' => 'GET',
+            'header' => "User-Agent: " . USER_AGENT . "\r\n",
+            'timeout' => 5
+        ],
+        'ssl' => [
+            'verify_peer' => false,
+            'verify_peer_name' => false
+        ]
+    ]));
+
+    if ($html) {
+        libxml_use_internal_errors(true);
+        $dom = new DOMDocument();
+        @$dom->loadHTML($html);
+        libxml_clear_errors();
+
+        // Look for article:modified_time
+        foreach ($dom->getElementsByTagName('meta') as $m) {
+            $prop = $m->getAttribute('property');
+            $content = $m->getAttribute('content');
+            if ($prop === 'article:modified_time' && !empty($content)) {
+                $meta['lastmod'] = date('c', strtotime($content));
+                break;
+            }
+        }
+
+        // Look for JSON-LD dateModified
+        if (!$meta['lastmod']) {
+            foreach ($dom->getElementsByTagName('script') as $script) {
+                if ($script->getAttribute('type') === 'application/ld+json') {
+                    $json = @json_decode($script->textContent, true);
+                    if (!empty($json['dateModified'])) {
+                        $meta['lastmod'] = date('c', strtotime($json['dateModified']));
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    // Fallback to current date if no lastmod found
+    if (!$meta['lastmod']) {
+        $meta['lastmod'] = date('c');
+    }
+
+    // Smart changefreq based on URL patterns
+    $urlLower = strtolower($url);
+    if (strpos($urlLower, '/blog') !== false || strpos($urlLower, '/news') !== false || strpos($urlLower, '/article') !== false) {
+        $meta['changefreq'] = 'weekly';
+    } elseif (strpos($urlLower, '/product') !== false || strpos($urlLower, '/shop') !== false) {
+        $meta['changefreq'] = 'daily';
+    } elseif (strpos($urlLower, '/about') !== false || strpos($urlLower, '/contact') !== false) {
+        $meta['changefreq'] = 'yearly';
+    }
+
+    // Calculate priority based on URL depth
+    $path = parse_url($url, PHP_URL_PATH) ?: '/';
+    $depth = substr_count(trim($path, '/'), '/');
+    $meta['priority'] = number_format(max(0.1, 1 - ($depth * 0.15)), 1);
+
+    // Cache and return
+    $GLOBALS['metadata_cache'][$url] = $meta;
+    return $meta;
+}
+
+// ============== XML GENERATION - FIXED ==============
+function buildSitemapXml(array $urls): string
+{
+    $xml = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
+    $xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
+
+    foreach ($urls as $url) {
+        $meta = getPageMetadataOnce($url);
+
+        $xml .= "<url>\n";
+        $xml .= "<loc>" . htmlspecialchars($url, ENT_XML1 | ENT_QUOTES, 'UTF-8') . "</loc>\n";
+        $xml .= "<lastmod>{$meta['lastmod']}</lastmod>\n";
+        $xml .= "<changefreq>{$meta['changefreq']}</changefreq>\n";
+        $xml .= "<priority>{$meta['priority']}</priority>\n";
+        $xml .= "</url>\n";
+    }
+
+    $xml .= "</urlset>";
+
+    return $xml;
+}
+
+// ============== TREE STRUCTURE - FIXED FOR PROPER NESTING ==============
+function buildTree($urls, $baseUrl)
+{
+    $baseParsed = parse_url($baseUrl);
+    $baseHost = $baseParsed['host'] ?? '';
+
+    $tree = [
+        '__url' => $baseUrl,
+        '__meta' => null,
+        '__label' => $baseHost ?: 'Root',
+        '__children' => []
+    ];
+
+    foreach ($urls as $url) {
+        $meta = getPageMetadataOnce($url);
+        $parsed = parse_url($url);
+        $path = $parsed['path'] ?? '/';
+
+        // Handle homepage
+        if ($path === '/' || $path === '') {
+            $tree['__children'][] = [
+                '__url' => $url,
+                '__meta' => $meta,
+                '__label' => 'Homepage',
+                '__children' => []
+            ];
+            continue;
+        }
+
+        // Split path into segments
+        $pathParts = array_filter(explode('/', trim($path, '/')));
+
+        // Navigate/create nested structure
+        $currentLevel = &$tree['__children'];
+        $currentPath = '';
+
+        foreach ($pathParts as $index => $segment) {
+            $currentPath .= '/' . $segment;
+            $isLastSegment = ($index === count($pathParts) - 1);
+
+            // Look for existing node at this level
+            $found = false;
+            foreach ($currentLevel as &$child) {
+                // Match by path segment label
+                $childSegment = strtolower(str_replace(['-', '_'], ' ', $segment));
+                $childLabel = strtolower($child['__label']);
+
+                if (
+                    $childLabel === $childSegment ||
+                    (isset($child['__url']) && parse_url($child['__url'], PHP_URL_PATH) === $currentPath)
+                ) {
+                    $found = true;
+
+                    // If this is the last segment, update the URL and meta
+                    if ($isLastSegment) {
+                        $child['__url'] = $url;
+                        $child['__meta'] = $meta;
+                    }
+
+                    // Move to next level
+                    $currentLevel = &$child['__children'];
+                    break;
+                }
+            }
+
+            // Create new node if not found
+            if (!$found) {
+                $label = ucwords(str_replace(['-', '_'], ' ', $segment));
+                $label = preg_replace('/\.(html|php|htm)$/', '', $label);
+
+                $newNode = [
+                    '__url' => $isLastSegment ? $url : null,
+                    '__meta' => $isLastSegment ? $meta : null,
+                    '__label' => $label,
+                    '__children' => []
+                ];
+
+                $currentLevel[] = $newNode;
+                $currentLevel = &$currentLevel[count($currentLevel) - 1]['__children'];
+            }
+        }
+    }
+
+    return $tree;
+}
+
+function renderTreeHtml($node, $isRoot = true)
+{
+    $html = '';
+
+    if ($isRoot) {
+        $html .= "<ul class='tree-list'>";
+        $html .= "<li class='tree-item open'>";
+        $html .= "<span class='toggle-btn'>&#9660;</span>";
+        $html .= "<span class='tree-label root-label'>" . htmlspecialchars($node['__label']) . "</span>";
+
+        if (!empty($node['__children'])) {
+            $html .= "<ul class='tree-list'>";
+            foreach ($node['__children'] as $child) {
+                $html .= renderTreeHtml($child, false);
+            }
+            $html .= "</ul>";
+        }
+
+        $html .= "</li>";
+        $html .= "</ul>";
+    } else {
+        $hasChildren = !empty($node['__children']);
+        $url = $node['__url'] ?? null;
+        $meta = $node['__meta'] ?? [];
+        $label = $node['__label'] ?? 'Unknown';
+
+        $html .= "<li class='tree-item'>";
+
+        if ($hasChildren) {
+            $html .= "<span class='toggle-btn'>&#9654;</span>";
+        } else {
+            $html .= "<span class='toggle-placeholder'></span>";
+        }
+
+        $html .= "<span class='tree-label'>" . htmlspecialchars($label) . "</span>";
+
+        if ($url) {
+            $html .= " <span class='tree-separator'>—</span> <a class='tree-link' href='" . htmlspecialchars($url) . "' target='_blank'>"
+                . htmlspecialchars($url) . "</a>";
+
+            $html .= "<div class='tree-meta'>
+                        📅 <b>Last:</b> " . ($meta['lastmod'] ?? '-') . " &nbsp;
+                        ⭐ <b>P:</b> " . ($meta['priority'] ?? '-') . " &nbsp;
+                        ⏳ <b>F:</b> " . ($meta['changefreq'] ?? '-') . "
+                      </div>";
+        }
+
+        if ($hasChildren) {
+            $html .= "<ul class='tree-list'>";
+            foreach ($node['__children'] as $child) {
+                $html .= renderTreeHtml($child, false);
+            }
+            $html .= "</ul>";
+        }
+
+        $html .= "</li>";
+    }
+
+    return $html;
+}
+
+// ============== UTILITY FUNCTIONS ==============
+function getDomainName($url)
+{
+    $host = parse_url($url, PHP_URL_HOST);
+    if (!$host) return 'sitemap';
+
+    $host = preg_replace('/^www\./', '', $host);
+    $parts = explode('.', $host);
+    $domain = $parts[0];
+
+    return ucfirst($domain);
+}
+
+function writeTempFile($content, $filename)
+{
+    $file = sys_get_temp_dir() . '/' . $filename;
+    file_put_contents($file, $content);
+    return $filename;
+}
+
+// ============== FILTER LOGIC ==============
+function matchesPathFilter($url, $includeList, $excludeList)
+{
+    $path = parse_url($url, PHP_URL_PATH) ?: '/';
+
+    foreach ($excludeList as $pattern) {
+        $pattern = trim($pattern);
+        if (empty($pattern)) continue;
+
+        $pattern = trim($pattern, '/');
+
+        if (strpos($path, '/' . $pattern) !== false || strpos($path, $pattern . '/') !== false || $path === '/' . $pattern) {
+            return false;
+        }
+    }
+
+    if (empty(array_filter($includeList))) {
+        return true;
+    }
+
+    foreach ($includeList as $pattern) {
+        $pattern = trim($pattern);
+        if (empty($pattern)) continue;
+
+        $pattern = trim($pattern, '/');
+
+        if (strpos($path, '/' . $pattern) !== false || strpos($path, $pattern . '/') !== false || $path === '/' . $pattern) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+// ============== DOWNLOAD HANDLER ==============
+if (isset($_GET['action'], $_GET['file']) && $_GET['action'] === 'download') {
+    $file = basename($_GET['file']);
+    $path = sys_get_temp_dir() . '/' . $file;
+    if (!file_exists($path)) die("File not found");
+
+    $ext = pathinfo($file, PATHINFO_EXTENSION);
+    if ($ext === 'xml') {
+        header("Content-Type: application/xml; charset=UTF-8");
+    } else {
+        header("Content-Type: text/html; charset=UTF-8");
+    }
+    header("Content-Disposition: attachment; filename=\"$file\"");
+    readfile($path);
+    exit;
+}
+
+// ============== MAIN CRAWLER ==============
+$report = null;
+$fullXmlContent = '';
+$error = '';
+$debugInfo = [];
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $base = trim($_POST['base_url'] ?? '');
+    $includePaths = array_filter(array_map('trim', explode(',', $_POST['include_paths'] ?? '')));
+    $excludePaths = array_filter(array_map('trim', explode(',', $_POST['exclude_paths'] ?? '')));
+
+    if (!filter_var($base, FILTER_VALIDATE_URL)) {
+        $error = 'Invalid URL';
+    }
+
+    if (empty($error)) {
+        $base = rtrim($base, '/');
+        $domainName = getDomainName($base);
+
+        $timeout = 60;
+        $maxUrls = 5000;
+        $start = time();
+
+        $normalize = function (string $url): string {
+            $u = parse_url($url);
+            if (!$u || empty($u['host'])) return '';
+            $scheme = $u['scheme'] ?? 'https';
+
+            $host = preg_replace('/^www\./', '', $u['host']);
+
+            $path = isset($u['path']) ? rtrim($u['path'], '/') : '';
+            if ($path === '') $path = '/';
+
+            $url = strtolower($scheme . '://' . $host . $path);
+            if (isset($u['query'])) $url .= '?' . $u['query'];
+            return $url;
+        };
+
+        $fetch = function (string $url) use (&$debugInfo): string|false {
+            $opts = [
+                'http' => [
+                    'method' => 'GET',
+                    'header' => "User-Agent: " . USER_AGENT . "\r\nAccept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\r\n",
+                    'timeout' => 10,
+                    'follow_location' => 1,
+                    'max_redirects' => 3
+                ],
+                'ssl' => [
+                    'verify_peer' => false,
+                    'verify_peer_name' => false
+                ]
+            ];
+            $ctx = stream_context_create($opts);
+            $html = @file_get_contents($url, false, $ctx);
+
+            if ($html === false) {
+                $debugInfo[] = "Failed to fetch: $url";
+            }
+
+            return $html;
+        };
+
+        $urlToAbsolute = function (string $base, string $rel): string|false {
+            if (parse_url($rel, PHP_URL_SCHEME) != '') return $rel;
+            if (substr($rel, 0, 2) === '//') {
+                $scheme = parse_url($base, PHP_URL_SCHEME);
+                return $scheme . ':' . $rel;
+            }
+            $baseParts = parse_url($base);
+            if (!isset($baseParts['scheme'], $baseParts['host'])) return false;
+            $basePath = $baseParts['path'] ?? '/';
+            $basePath = preg_replace('#/[^/]*$#', '/', $basePath);
+            $path = ($rel[0] === '/') ? $rel : ($basePath . $rel);
+            $segments = explode('/', $path);
+            $resolved = [];
+            foreach ($segments as $segment) {
+                if ($segment === '..') array_pop($resolved);
+                elseif ($segment !== '.' && $segment !== '') $resolved[] = $segment;
+            }
+            return $baseParts['scheme'] . '://' . $baseParts['host'] . '/' . implode('/', $resolved);
+        };
+
+        $extractLinks = function (string $html, string $base) use ($urlToAbsolute): array {
+            $links = [];
+            libxml_use_internal_errors(true);
+            $dom = new DOMDocument();
+            @$dom->loadHTML($html);
+            libxml_clear_errors();
+            foreach ($dom->getElementsByTagName('a') as $a) {
+                $href = trim($a->getAttribute('href'));
+                if (!$href || str_starts_with($href, 'mailto:') || str_starts_with($href, 'javascript:') || str_starts_with($href, 'tel:')) continue;
+                if (str_contains(strtolower($a->getAttribute('rel')), 'nofollow')) continue;
+                $abs = $urlToAbsolute($base, $href);
+                if ($abs) $links[] = strtok($abs, '#');
+            }
+            return array_unique($links);
+        };
+
+        $parseRobots = function (string $base) use (&$debugInfo): array {
+            $rules = ['disallow' => [], 'disallowAll' => false];
+            $robotsUrl = rtrim($base, '/') . '/robots.txt';
+            $robotsTxt = @file_get_contents($robotsUrl);
+
+            if (!$robotsTxt) {
+                $debugInfo[] = "No robots.txt found";
+                return $rules;
+            }
+
+            $debugInfo[] = "Found robots.txt";
+            $userAgentMatch = false;
+
+            foreach (explode("\n", $robotsTxt) as $line) {
+                $line = trim(preg_replace('/#.*/', '', $line));
+
+                if (stripos($line, 'User-agent:') === 0) {
+                    $agent = trim(substr($line, 11));
+                    $userAgentMatch = ($agent === '*' || stripos(USER_AGENT, $agent) !== false);
+                    continue;
+                }
+
+                if ($userAgentMatch && stripos($line, 'Disallow:') === 0) {
+                    $path = trim(substr($line, 9));
+                    if ($path === '/') {
+                        $rules['disallowAll'] = true;
+                        $debugInfo[] = "robots.txt disallows all crawling";
+                    } elseif ($path !== '') {
+                        $rules['disallow'][] = $path;
+                    }
+                }
+            }
+            return $rules;
+        };
+
+        $allowedByRobots = function (string $url, array $rules): bool {
+            if ($rules['disallowAll']) return false;
+            $path = parse_url($url, PHP_URL_PATH) ?: '/';
+            foreach ($rules['disallow'] as $pattern) {
+                $regex = '#^' . str_replace('\*', '.*', preg_quote($pattern, '#')) . '#i';
+                if (preg_match($regex, $path)) return false;
+            }
+            return true;
+        };
+
+        $robots = $parseRobots($base);
+        if ($robots['disallowAll']) {
+            $error = 'robots.txt disallows all crawling for this user agent';
+        }
+
+        if (empty($error)) {
+            $visited = [];
+            $queue = [$base];
+            $crawled = [];
+            $skippedReasons = ['noindex' => 0, 'robots' => 0, 'filtered' => 0, 'fetch_failed' => 0, 'too_short' => 0];
+
+            $baseNormalized = preg_replace('/^(https?:\/\/)www\./', '$1', strtolower($base));
+
+            while ($queue && count($visited) < $maxUrls && (time() - $start) < $timeout) {
+                $url = array_shift($queue);
+                $urlNorm = $normalize($url);
+
+                if (!$urlNorm || isset($visited[$urlNorm])) continue;
+                if (!$allowedByRobots($urlNorm, $robots)) {
+                    $skippedReasons['robots']++;
+                    continue;
+                }
+
+                $html = $fetch($url);
+
+                if ($html === false) {
+                    $skippedReasons['fetch_failed']++;
+                    continue;
+                }
+
+                if (strlen($html) < 50) {
+                    $skippedReasons['too_short']++;
+                    continue;
+                }
+
+                $crawled[] = $url;
+
+                if (preg_match('/<meta\s+name=["\']robots["\']\s+content=["\'][^"\']*noindex[^"\']*["\']\s*\/?>/i', $html)) {
+                    $visited[$urlNorm] = false;
+                    $skippedReasons['noindex']++;
+                    continue;
+                }
+
+                if (preg_match('/<link\s+rel=["\']canonical["\']\s+href=["\']([^"\']+)["\']\s*\/?>/i', $html, $m)) {
+                    $canonical = $urlToAbsolute($url, $m[1]);
+                    if ($canonical && $canonical !== $url && !isset($visited[$normalize($canonical)])) {
+                        $queue[] = $canonical;
+                    }
+                }
+
+                if (matchesPathFilter($urlNorm, $includePaths, $excludePaths)) {
+                    $visited[$urlNorm] = $url;
+                } else {
+                    $visited[$urlNorm] = false;
+                    $skippedReasons['filtered']++;
+                }
+
+                $links = $extractLinks($html, $url);
+                foreach ($links as $link) {
+                    if (count($visited) + count($queue) >= $maxUrls) break;
+
+                    $linkNormalized = preg_replace('/^(https?:\/\/)www\./', '$1', strtolower($link));
+                    if (strpos($linkNormalized, $baseNormalized) !== 0) continue;
+
+                    $linkNorm = $normalize($link);
+                    if ($linkNorm && !isset($visited[$linkNorm])) $queue[] = $link;
+                }
+            }
+
+            $finalUrls = array_values(array_filter($visited));
+
+            $debugInfo[] = "Total crawled: " . count($crawled);
+            $debugInfo[] = "Passed filters: " . count($finalUrls);
+            $debugInfo[] = "Skipped - noindex: " . $skippedReasons['noindex'];
+            $debugInfo[] = "Skipped - robots.txt: " . $skippedReasons['robots'];
+            $debugInfo[] = "Skipped - filtered: " . $skippedReasons['filtered'];
+            $debugInfo[] = "Skipped - fetch failed: " . $skippedReasons['fetch_failed'];
+
+            if (empty($finalUrls)) {
+                $error = 'No crawlable pages found. Check information below.';
+            } else {
+                sort($finalUrls);
+
+                $xmlStr = buildSitemapXml($finalUrls);
+
+                $domainName = preg_replace('/[^a-zA-Z0-9_-]/', '', $domainName);
+                $xmlFilename = $domainName . 'Sitemap.xml';
+                $xmlFilePath = sys_get_temp_dir() . DIRECTORY_SEPARATOR . $xmlFilename;
+
+                // FIX: Use trim() to remove leading/trailing whitespace before saving
+                file_put_contents($xmlFilePath, trim($xmlStr), LOCK_EX);
+
+                $fullXmlContent = $xmlStr;
+
+                $tree = buildTree($finalUrls, $base);
+                $treeHtmlContent = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Sitemap Tree - ' . $domainName . '</title>' .
+                    '<style>
+                    .body-root { font-family:Arial;background:#f4f4f4;color:#333;padding:20px;}
+                    .tree-list {list-style:none;padding-left:20px;margin:8px 0;}
+                    .tree-item {margin:8px 0; position:relative;}
+                    .toggle-btn { cursor:pointer; user-select:none; display:inline-block; width:20px; color:#007bff; font-weight:bold; transition: transform 0.2s;}
+                    .toggle-placeholder {display:inline-block; width:20px;}
+                    .tree-label {margin-right:8px; font-weight:500; color:#333;}
+                    .root-label { font-weight:700; font-size:18px; color:#667eea;}
+                    .tree-separator { color:#999; margin:0 8px;}
+                    .tree-link { color:#007bff; text-decoration:none; word-break:break-all;}
+                    .tree-link:hover { text-decoration:underline;}
+                    .tree-meta { font-size:12px; color:#666; margin:4px 0 0 40px; padding:8px; background:#f9f9f9; border-radius:4px; display:inline-block;}
+                    .tree-item > .tree-list { display:none; }
+                    .tree-item.open > .tree-list { display:block; }
+                    .tree-item.open > .toggle-btn { transform: rotate(90deg);}
+                    .controls { margin:20px 0; }
+                    .controls button { padding:10px 20px; margin-right:10px; background:#667eea; color:white; border:none; border-radius:5px; cursor:pointer; font-weight:600;}
+                    .controls button:hover { background:#5568d3;}
+                    </style>
+                    </head><body class="body-root">
+                    <h2>Sitemap Tree - ' . $domainName . '</h2>
+                    <div class="controls">
+                        <button id="expandAll">Expand All</button>
+                        <button id="collapseAll">Collapse All</button>
+                    </div>';
+                $treeHtmlContent .= renderTreeHtml($tree, true);
+                $treeHtmlContent .= '<script>
+                function setOpen(elem, open) {
+                    if(open) elem.classList.add("open");
+                    else elem.classList.remove("open");
+                }
+                document.querySelectorAll(".toggle-btn").forEach(function(btn){
+                    btn.addEventListener("click", function(){
+                        var li = btn.parentElement;
+                        setOpen(li, !li.classList.contains("open"));
+                    });
+                });
+                document.getElementById("expandAll").onclick = function(){
+                    document.querySelectorAll(".tree-item").forEach(function(li){ setOpen(li,true); });
+                };
+                document.getElementById("collapseAll").onclick = function(){
+                    document.querySelectorAll(".tree-item").forEach(function(li){ setOpen(li,false); });
+                };
+                </script></body></html>';
+
+                $treeFilename = $domainName . 'SitemapTree.html';
+                $treeFile = writeTempFile($treeHtmlContent, $treeFilename);
+
+                $report = [
+                    'count' => count($finalUrls),
+                    'crawled' => count($crawled),
+                    'excluded' => count($crawled) - count($finalUrls),
+                    'downloads' => [
+                        'XML Sitemap' => $xmlFilename,
+                        'HTML Tree' => $treeFile
+                    ]
+                ];
+            }
+        }
+    }
+}
+?>
+
+<style>
+    .background-remover-tool {
+        text-align: center;
+        padding: 40px;
+        position: relative;
+        background-image: url('https://www.milople.com//media/background-img/Background.jpg');
+        background-size: contain;
+        z-index: 3;
+        background-repeat: no-repeat;
+    }
+
+    body {
+        background: #fff;
+        font-family: 'Rubik', sans-serif;
+        color: #666;
+        font-size: 14px;
+        margin: 0 auto;
+    }
+
+    .xmlgen-header {
+
+        display: flex;
+        flex-direction: column;
+        align-content: center;
+        justify-content: center;
+        align-items: center;
+        gap: 20px;
+    }
+
+    .xmlgen-heading {
+        width: 787px;
+        height: 59px;
+    }
+
+    .xmlgen-heading p {
+        font-weight: 600;
+        font-style: SemiBold;
+        font-size: 50px;
+        leading-trim: NONE;
+        line-height: 100%;
+        letter-spacing: 0%;
+        text-align: center;
+
+        color: #000;
+
+    }
+
+    .shown {
+        display: block;
+    }
+
+    .hidden {
+        display: none;
+    }
+
+    .xmlgen-heading-helper {
+        width: 630px;
+        height: 44px;
+        font-family: Rubik;
+
+
+    }
+
+    .xmlgen-heading-helper p {
+
+        font-family: Rubik;
+        font-weight: 400;
+        font-style: Regular;
+        font-size: 18px;
+        leading-trim: NONE;
+        line-height: 22px;
+        letter-spacing: 0%;
+        text-align: center;
+        color: #000000;
+
+
+    }
+
+    .xmlgen-container {
+        font-family: Rubik !important;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        max-width: 750px;
+        margin: 40px auto;
+        padding: 20px;
+        border-radius: 20px;
+        background: #fff;
+        gap: 20px;
+        border: 3px dashed #086798;
+        overflow-x: auto;
+        height: 570px;
+    }
+
+    .section-title {
+
+
+        font-weight: 400;
+        font-size: 18px;
+        line-height: 20px;
+        text-align: left;
+        margin-bottom: 8px;
+        color: #000;
+    }
+
+    .input-field {
+        width: 100%;
+        padding: 12px 16px;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        font-size: 14px;
+        color: #6b7280;
+        transition: all 0.3s ease;
+        background: #EBF8FF !important;
+
+        height: 52px !important;
+        opacity: 1;
+        border-radius: 10px !important;
+        border-width: 1px;
+
+    }
+
+    .input-field-small {
+        width: 100%;
+        padding: 12px 16px;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        font-size: 14px;
+        color: #6b7280;
+        transition: all 0.3s ease;
+        background: #EBF8FF !important;
+        width: 346px !important;
+        height: 52px !important;
+        opacity: 1;
+        border-radius: 10px !important;
+        border-width: 1px;
+
+    }
+
+    .input-field:focus {
+        outline: none;
+        background: white;
+        border: 1px solid #B1DAF0;
+    }
+
+    .input-field-small:focus {
+        outline: none;
+        background: white;
+        border: 1px solid #B1DAF0;
+    }
+
+    .input-field::placeholder {
+        color: #000000 !important;
+    }
+
+    .input-field-small::placeholder {
+        color: #000000 !important;
+    }
+
+    .two-column {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+        margin-bottom: 24px;
+    }
+
+    .column {
+        display: flex;
+        flex-direction: column;
+        text-align: left;
+
+
+
+
+    }
+
+    .help-text {
+
+        font-weight: 400;
+        font-size: 14px;
+        line-height: 20px;
+        color: #000000;
+        margin-top: 8px;
+    }
+
+    .examples {
+
+        font-weight: 400;
+        font-size: 14px;
+        line-height: 20px;
+        color: #000000;
+    }
+
+    .examples-title {
+        text-align: left;
+        font-weight: 600;
+        margin-bottom: 2px;
+    }
+
+    .example-item {
+        text-align: left;
+        margin-left: 0;
+    }
+
+    .button-group {
+        display: flex;
+        gap: 12px;
+        justify-content: center;
+        margin: 32px 0;
+    }
+
+    .xmlgen-btn-row {
+        display: inline-flex;
+        gap: 10px;
+        justify-content: center;
+        margin-top: 0;
+        margin-bottom: 0;
+    }
+
+    .xmlgen-form {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+
+    }
+
+    .xmlgen-btn {
+        border: none;
+        border-radius: 6px;
+        font-size: 16px;
+        font-weight: 500;
+        padding: 8px 18px;
+        cursor: pointer;
+        transition: background 0.18s;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .xmlgen-btn.analyze {
+        background: #fd7b1e;
+        color: #fff;
+    }
+
+    .xmlgen-btn.analyze:hover {
+        background: #e86a0c;
+    }
+
+    .xmlgen-btn.reset {
+        background: #094075;
+        color: #fff;
+        padding: 8px 12px;
+        min-width: 0;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .xmlgen-btn.reset:hover {
+        background: #062c4c;
+    }
+
+    .xmlgen-btn.reset svg {
+        transform: rotate(70deg);
+        transition: transform 0.3s ease;
+    }
+
+    .xmlgen-btn.reset:hover svg {
+        transform: rotate(-360deg);
+    }
+
+    .btn {
+        padding: 12px 28px;
+        border: none;
+        border-radius: 6px;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .btn-primary {
+        background: #ff6b35;
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background: #e55a28;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
+    }
+
+    .btn-secondary {
+        background: #1e40af;
+        color: white;
+        width: 48px;
+        height: 48px;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+    }
+
+    .btn-secondary:hover {
+        background: #1e3a8a;
+        transform: rotate(180deg);
+    }
+
+    .icon-refresh {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 2px solid white;
+        border-radius: 50%;
+        border-top-color: transparent;
+    }
+
+    .results-section {
+        margin-top: 32px;
+        padding-top: 24px;
+    }
+
+    .info-box {
+        background: #f0f9ff;
+        margin-bottom: 20px;
+        text-align: left;
+        border: 1px solid #B1DAF0;
+        border-radius: 10px;
+        border-width: 1px;
+        padding: 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        overflow-x: auto;
+        height: 170px;
+    }
+
+    .info-title {
+        font-family: Rubik;
+        font-weight: 400;
+        font-style: Regular;
+        font-size: 14px;
+        leading-trim: NONE;
+        line-height: 20px;
+        letter-spacing: 0%;
+        color: #000000;
+
+
+    }
+
+    .info-item p {
+        font-size: 13px;
+        color: #000000;
+        line-height: 1.6;
+        margin: 0px;
+    }
+
+    .stats-box {
+        margin-bottom: 20px;
+        background: #F3F3F3;
+        text-align: left;
+        display: flex;
+        flex-direction: column;
+        border: 1px solid #DBDBDB;
+        border-radius: 10px;
+        gap: 10px;
+        border-width: 1px;
+        padding: 10px;
+
+    }
+
+    .stats-item {
+        font-size: 14px;
+        color: #1a1a1a;
+        font-weight: 500;
+        font-family: Rubik;
+        font-weight: 400;
+        font-style: Regular;
+        font-size: 14px;
+        leading-trim: NONE;
+        line-height: 20px;
+        letter-spacing: 0%;
+
+    }
+
+    .stats-first {
+        font-family: Rubik;
+        font-weight: 600;
+        font-style: SemiBold;
+        font-size: 14px;
+        line-height: 20px;
+        letter-spacing: 0%;
+        color: #000000;
+
+
+    }
+
+    .preview-box {
+        background: #f0f9ff;
+        margin-bottom: 20px;
+        position: relative;
+        border: 1px solid #B1DAF0;
+        border-radius: 10px;
+        gap: 10px;
+        border-width: 1px;
+        padding: 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        overflow-x: auto;
+        height: 170px;
+    }
+
+    .preview-header {
+        display: flex;
+        justify-content: space-between;
+        position: sticky;
+        top: 0;
+        width: 100%;
+        background: #f0f9ff;
+    }
+
+    .preview-header.scrolled {
+        top: -10px;
+        padding: 5px;
+
+    }
+
+    .copy-btn {
+        font-family: Rubik;
+        font-weight: 600;
+        font-style: SemiBold;
+        font-size: 10px;
+        leading-trim: NONE;
+        line-height: 12.32px;
+        letter-spacing: 0%;
+        color: #000000;
+        transition: all 0.3s ease;
+        background: transparent;
+        border: none;
+        display: flex;
+        gap: 8px;
+        cursor: pointer;
+        align-items: center;
+        margin: 0;
+    }
+
+
+    .copy-btn-icon {
+        display: inline-block;
+        position: relative;
+        width: 20px;
+        height: 20px;
+    }
+
+    .preview-content {
+        font-family: Rubik;
+        font-weight: 400;
+        font-style: Regular;
+        font-size: 14px;
+        leading-trim: NONE;
+        line-height: 20px;
+        letter-spacing: 0%;
+        color: #000000;
+        text-align: left;
+        line-height: 1.1;
+        white-space: pre-line;
+        word-wrap: break-word;
+        overflow-x: auto;
+        text-align: left;
+        margin: 0;
+        padding: 0;
+    }
+
+    .download-section {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    .btn-download {
+        font-family: Rubik;
+        font-weight: 700;
+        font-style: Bold;
+        font-size: 16px;
+        leading-trim: NONE;
+        line-height: 20px;
+        letter-spacing: 0%;
+        background: #FD7B1E;
+        color: white;
+        width: 198;
+        height: 40;
+        border-radius: 4px;
+        padding-top: 10px;
+        padding-right: 6px;
+        padding-bottom: 10px;
+        padding-left: 6px;
+        gap: 10px;
+        text-decoration: none !important;
+        color: white !important;
+
+    }
+
+    .btn-download:hover {
+        transform: translateY(-2px);
+        color: white !important;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 1200px) {
+        .xmlgen-heading {
+            width: 90%;
+            height: auto;
+        }
+
+        .xmlgen-heading-helper {
+            width: 90%;
+            height: auto;
+        }
+    }
+
+    @media (max-width: 991px) {
+        .xmlgen-heading p {
+            font-size: 40px;
+        }
+
+        .xmlgen-heading-helper p {
+            font-size: 16px;
+            line-height: 20px;
+        }
+    }
+
+    @media (max-width: 850px) {
+        .two-column {
+            grid-template-columns: 1fr;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .input-field-small {
+            width: 100% !important;
+        }
+
+        .column {
+            width: 100%;
+        }
+
+        .help-text,
+        .examples {
+            font-size: 12px;
+            line-height: 16px;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .xmlgen-container {
+            padding: 20px 16px;
+            border-radius: 15px;
+            height: auto;
+            max-height: none;
+            gap: 15px;
+        }
+
+        .xmlgen-heading {
+            width: 95%;
+        }
+
+        .xmlgen-heading p {
+            font-size: 36px;
+        }
+
+        .xmlgen-heading-helper {
+            width: 95%;
+        }
+
+        .xmlgen-heading-helper p {
+            font-size: 15px;
+            line-height: 18px;
+        }
+
+        .two-column {
+            grid-template-columns: 1fr;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .input-field-small {
+            width: 100% !important;
+        }
+
+        .column {
+            width: 100%;
+        }
+
+        .xmlgen-btn-row {
+            flex-direction: row;
+            justify-content: center;
+            width: 100%;
+        }
+
+        .xmlgen-btn.analyze {
+            flex: 1;
+            max-width: 250px;
+            justify-content: center;
+        }
+
+        .section-title {
+            font-size: 16px;
+        }
+
+        .info-box,
+        .stats-box,
+        .preview-box {
+            height: auto;
+            max-height: 200px;
+        }
+
+        .download-section {
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .btn-download {
+            width: 100% !important;
+            text-align: center;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .xmlgen-header {
+            gap: 15px;
+            padding: 0 10px;
+        }
+
+        .xmlgen-heading {
+            width: 100%;
+        }
+
+        .xmlgen-heading p {
+            font-size: 35px;
+        }
+
+        .xmlgen-heading-helper {
+            width: 100%;
+        }
+
+        .xmlgen-heading-helper p {
+            font-size: 14px;
+            line-height: 18px;
+        }
+
+        .xmlgen-container {
+            padding: 16px 12px;
+            border-radius: 12px;
+            margin: 30px auto;
+            gap: 12px;
+        }
+
+        .input-field {
+            height: 48px !important;
+            padding: 10px 14px;
+            font-size: 14px;
+        }
+
+        .input-field-small {
+            height: 48px !important;
+            padding: 10px 14px;
+            font-size: 14px;
+        }
+
+        .section-title {
+            font-size: 15px;
+            margin-bottom: 6px;
+        }
+
+        .help-text,
+        .examples {
+            font-size: 11px;
+            line-height: 16px;
+        }
+
+        .xmlgen-btn.analyze {
+            font-size: 15px;
+            padding: 10px 16px;
+        }
+
+        .xmlgen-btn.reset {
+            width: 42px;
+            height: 42px;
+        }
+
+        .info-box,
+        .stats-box,
+        .preview-box {
+            padding: 8px;
+            gap: 8px;
+        }
+
+        .info-title,
+        .stats-first,
+        .stats-item {
+            font-size: 13px;
+        }
+
+        .preview-content {
+            font-size: 12px;
+            line-height: 18px;
+        }
+
+        .copy-btn {
+            font-size: 9px;
+        }
+
+        .copy-btn-icon {
+            width: 16px;
+            height: 16px;
+        }
+
+        .btn-download {
+            font-size: 15px;
+            padding: 12px 8px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .xmlgen-heading p {
+            font-size: 32px;
+            line-height: 28px;
+        }
+
+        .xmlgen-heading-helper p {
+            font-size: 13px;
+            line-height: 16px;
+        }
+
+        .xmlgen-container {
+            padding: 14px 10px;
+            border-radius: 10px;
+            margin: 20px 10px;
+        }
+
+        .input-field,
+        .input-field-small {
+            height: 44px !important;
+            padding: 8px 12px;
+            font-size: 13px;
+            border-radius: 8px !important;
+        }
+
+        .section-title {
+            font-size: 14px;
+        }
+
+        .help-text,
+        .examples {
+            font-size: 8px;
+            line-height: 14px;
+        }
+
+        .example-item {
+            margin-bottom: 2px;
+        }
+
+        .xmlgen-btn.analyze {
+            font-size: 14px;
+            padding: 9px 14px;
+        }
+
+        .xmlgen-btn.reset {
+            width: 38px;
+            height: 38px;
+        }
+
+        .xmlgen-btn.reset svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        .info-box,
+        .stats-box,
+        .preview-box {
+            max-height: 150px;
+            padding: 8px;
+        }
+
+        .info-title,
+        .stats-first {
+            font-size: 12px;
+        }
+
+        .stats-item,
+        .info-item p {
+            font-size: 11px;
+        }
+
+        .preview-content {
+            font-size: 11px;
+            line-height: 16px;
+        }
+
+        .btn-download {
+            font-size: 14px;
+            padding: 10px 6px;
+        }
+    }
+
+    @media (max-width: 360px) {
+        .xmlgen-heading p {
+            font-size: 34px;
+            line-height: 24px;
+        }
+
+        .xmlgen-heading-helper p {
+            font-size: 12px;
+            line-height: 15px;
+        }
+
+        .xmlgen-container {
+            padding: 12px 8px;
+            margin: 15px 8px;
+            gap: 10px;
+        }
+
+        .input-field,
+        .input-field-small {
+            height: 42px !important;
+            padding: 8px 10px;
+            font-size: 12px;
+        }
+
+        .section-title {
+            font-size: 13px;
+        }
+
+        .help-text,
+        .examples {
+            font-size: 8px;
+            line-height: 13px;
+        }
+
+        .xmlgen-btn.analyze {
+            font-size: 13px;
+            padding: 8px 12px;
+        }
+
+        .xmlgen-btn.reset {
+            width: 36px;
+            height: 36px;
+        }
+
+        .info-title,
+        .stats-first {
+            font-size: 11px;
+        }
+
+        .stats-item,
+        .info-item p {
+            font-size: 10px;
+        }
+
+        .preview-content {
+            font-size: 10px;
+            line-height: 15px;
+        }
+
+        .copy-btn {
+            font-size: 8px;
+            gap: 4px;
+        }
+
+        .copy-btn-icon {
+            width: 14px;
+            height: 14px;
+        }
+
+        .btn-download {
+            font-size: 13px;
+            padding: 9px 5px;
+        }
+    }
+
+    @media (max-width: 320px) {
+        .xmlgen-heading p {
+            font-size: 34px;
+            line-height: 22px;
+        }
+
+        .xmlgen-heading-helper p {
+            font-size: 11px;
+            line-height: 14px;
+        }
+
+        .xmlgen-container {
+            padding: 10px 6px;
+            margin: 10px 5px;
+        }
+
+        .input-field,
+        .input-field-small {
+            height: 40px !important;
+            padding: 6px 8px;
+            font-size: 11px;
+        }
+
+        .section-title {
+            font-size: 12px;
+        }
+
+        .xmlgen-btn.analyze {
+            font-size: 12px;
+            padding: 7px 10px;
+        }
+
+        .xmlgen-btn.reset {
+            width: 34px;
+            height: 34px;
+        }
+
+        .info-box,
+        .stats-box,
+        .preview-box {
+            max-height: 120px;
+            padding: 6px;
+        }
+
+        .btn-download {
+            font-size: 12px;
+            padding: 8px 4px;
+        }
+    }
+
+    /* Icon styles */
+    .icon-refresh {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 2px solid white;
+        border-radius: 50%;
+        border-top-color: transparent;
+    }
+
+
+    .home-heading.title {
+        text-transform: capitalize !important;
+        font-weight: 700 !important;
+    }
+
+    /* .home-heading .highlight::before, .home-page-common .post-list .post-item-link::before{
+        height:90% !important;
+        top:15px !important;
+    } */
+    @media (max-width: 991px) {
+        .home-heading .highlight {
+            font-size: 24px !important;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .home-heading.title {
+            font-size: 22px !important;
+        }
+
+        .home-heading .highlight {
+            font-size: 24px !important;
+        }
+
+        .home-heading .highlight::before,
+        .home-page-common .post-list .post-item-link::before {
+            top: 10px !important;
+            height: 75% !important;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .home-heading.title {
+            font-size: 18px !important;
+        }
+
+        .home-heading.title.feature {
+            margin-right: 15px;
+            margin-left: 15px;
+        }
+
+        .home-heading .highlight {
+            font-size: 22px !important;
+        }
+
+        .home-heading .highlight::before,
+        .home-page-common .post-list .post-item-link::before {
+            top: 8px !important;
+            height: 85% !important;
+        }
+    }
+
+    @media (max-width: 360px) {
+        .home-heading.title {
+            font-size: 16px !important;
+        }
+
+        .home-heading .highlight::before,
+        .home-page-common .post-list .post-item-link::before {
+            top: 10px !important;
+            height: 80% !important;
+        }
+
+        .home-heading .highlight {
+            font-size: 20px !important;
+        }
+    }
+
+    @media (max-width: 320px) {
+        .home-heading.title {
+            font-size: 15px !important;
+        }
+
+        .home-heading .highlight::before,
+        .home-page-common .post-list .post-item-link::before {
+            top: 5px !important;
+            height: 75% !important;
+        }
+
+        .home-heading .highlight {
+            font-size: 18px !important;
+        }
+    }
+
+    .home-heading.title .highlight.generator {
+        z-index: 10;
+        position: relative;
+        padding: 0 25px;
+        color: #000;
+    }
+
+    .home-heading.title {
+        z-index: 10 !important;
+    }
+
+    @media (max-width: 500px) {
+        .home-heading.title .highlight {
+            padding: 0px;
+            position: initial;
+        }
+
+        .home-heading.title .highlight.generator {
+            position: initial;
+            padding: 0px;
+        }
+    }
+
+    @media (max-width: 1200px) {
+        .example-images {
+            display: none;
+        }
+    }
+
+    @media (max-width: 768px) {
+
+        .example-images {
+            display: none;
+        }
+
+        .home-heading.title .highlight {
+            font-size: 24px;
+        }
+
+        .thirdblock .custom .col-md-12.col-sm-12 {
+            padding: 0;
+        }
+
+
+        .row.cloud-row-one {
+            display: flex;
+            /* justify-content: ; */
+            flex-direction: column;
+        }
+
+        .col-md-6.col-sm-6.firstblock {
+            width: unset !important;
+
+        }
+
+
+
+        .col-md-6.col-sm-6.secondblock {
+            width: unset !important;
+            text-align: center;
+        }
+
+
+        .row.cloud-row-two {
+            display: flex;
+            /* justify-content: ; */
+            flex-direction: column-reverse;
+        }
+    }
+
+
+    .fourthblock .footer span {
+        font-size: 1.5em;
+        color: #000;
+        font-weight: bold;
+    }
+
+    .example-images {
+        padding-bottom: 80px;
+    }
+
+
+
+    .fourthblock button {
+        border-radius: 10px;
+        margin-top: 35px;
+        background-color: #fe791a;
+        color: white;
+        width: 220px;
+        padding: 0px 10px;
+        font-weight: 700;
+        font-size: 14px;
+    }
+
+    .fourthblock button:hover {
+        transform: translateY(-5px);
+    }
+
+    .example-img {
+        position: absolute;
+        width: 190px;
+        height: auto;
+        border-radius: 12px;
+
+    }
+
+    .img-left {
+        top: 14%;
+        left: 10%;
+        transform: translateY(-50%);
+        z-index: -1;
+    }
+
+    .img-right {
+        right: 7%;
+        transform: translateY(-50%);
+        z-index: -1;
+        bottom: 11%;
+    }
+
+    .example-img.img-left {
+        border: none;
+        box-shadow: none;
+    }
+
+    .example-img.img-right {
+        border: none;
+        box-shadow: none;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+
+
+        .example-img {
+            width: 100px;
+        }
+
+        .password-checkbox-group {
+            display: grid;
+
+            grid-template-columns: repeat(2, 3fr);
+        }
+
+
+
+        .col-md-6.col-sm-6.firstblock p {
+            font-size: 15px !important;
+
+        }
+
+        .steps {
+            grid-template-columns: repeat(1, 1fr);
+        }
+
+        .thirdblock {
+            padding: 25px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .col-md-6.col-sm-6.firstblock p {
+            font-size: 15px !important;
+            text-align: left;
+        }
+
+        .home-heading.title .highlight {
+            font-size: 15px;
+        }
+
+        .home-heading.title .highlight {
+
+            padding: 0;
+
+        }
+
+
+        .thirdblock {
+            padding: 20px;
+        }
+
+        .example-img {
+            width: 80px;
+        }
+    }
+
+
+    /* Container */
+    .container.block1 {
+
+
+        background-color: #EEEEEE;
+        padding: 6px 10% 40px;
+        width: 100%;
+        max-width: 100% !important;
+    }
+
+    .container.block1 .home-heading.title {
+        margin-top: 25px;
+    }
+
+    .home-heading.title .highlight {
+        z-index: 10;
+        position: relative;
+        padding: 0 25px;
+    }
+
+    .home-heading.title {
+        text-align: center;
+
+    }
+
+    .home-heading.title .highlight::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        bottom: 0;
+        height: 50%;
+        width: 100%;
+        background-color: #FFE5D2;
+        z-index: -1;
+        border-radius: 15px;
+    }
+
+    .highlight {
+        color: #000;
+    }
+
+    .steps {
+        display: grid;
+        grid-template-columns: repeat(1, 1fr);
+        gap: 30px;
+    }
+
+    /* Individual step */
+    .step {
+        background-color: white;
+        padding: 50px 50px 10px 35px;
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Step title */
+    .step-title {
+        margin-top: 15px;
+        padding: 10px 20px;
+        background-color: #094075;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 16px;
+    }
+
+    /* Step name */
+    .step-name {
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: #222;
+        margin-top: 15px;
+    }
+
+    /* Step description */
+    .step-description {
+        color: #444;
+        font-size: 18px;
+        line-height: 1.55 !important;
+    }
+
+    /* Responsive Styles */
+    @media (min-width: 600px) {
+        .steps {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+    }
+
+    @media (min-width: 1240px) {
+        .steps {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+
+    @media (max-width: 1370px) {
+        .img-left {
+            left: 4%;
+        }
+
+        .img-right {
+            right: 2%;
+
+        }
+    }
+
+    @media (max-width: 920px) {
+        .img-right {
+            right: 0%;
+
+        }
+
+        .img-left {
+
+            left: 2%;
+
+        }
+    }
+
+    /* 3rd block */
+    .thirdblock {
+        padding: 50px;
+        padding-bottom: 0;
+    }
+
+    .col-md-6.col-sm-6.firstblock {
+        width: 50%;
+        display: flex;
+        align-items: center;
+    }
+
+    .col-md-6.col-sm-6.firstblock p {
+        font-size: 18px;
+        text-align: left;
+    }
+
+    .col-md-6.col-sm-6.secondblock {
+        width: 50%;
+        text-align: center;
+        align-content: center;
+
+    }
+
+    .row.cloud-row-one {
+        display: flex;
+        /* justify-content: ; */
+        margin-top: 30px;
+    }
+
+    .row.cloud-row-two {
+        display: flex;
+        /* justify-content: ; */
+    }
+
+    /* 4th block */
+    .fourthblock {
+        text-align: center;
+        padding: 50px;
+        background-color: #eee;
+    }
+
+    /* .header h1 {
+        font-size: 32px;
+        font-weight: bold;
+        margin-bottom: 10px;
+        color: #000;
+    } */
+
+
+    .home-heading.title {
+        text-transform: capitalize !important;
+        font-weight: 700 !important;
+    }
+
+    /* .home-heading .highlight::before, .home-page-common .post-list .post-item-link::before{
+        height:90% !important;
+        top:15px !important;
+    } */
+    @media (max-width: 991px) {
+        .home-heading .highlight {
+            font-size: 24px !important;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .home-heading.title {
+            font-size: 22px !important;
+        }
+
+        .home-heading .highlight {
+            font-size: 24px !important;
+        }
+
+        .home-heading .highlight::before,
+        .home-page-common .post-list .post-item-link::before {
+            top: 10px !important;
+            height: 75% !important;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .home-heading.title {
+            font-size: 18px !important;
+        }
+
+        .home-heading.title.feature {
+            margin-right: 15px;
+            margin-left: 15px;
+        }
+
+        .home-heading .highlight {
+            font-size: 22px !important;
+        }
+
+        .home-heading .highlight::before,
+        .home-page-common .post-list .post-item-link::before {
+            top: 8px !important;
+            height: 85% !important;
+        }
+    }
+
+    @media (max-width: 360px) {
+        .home-heading.title {
+            font-size: 16px !important;
+        }
+
+        .home-heading .highlight::before,
+        .home-page-common .post-list .post-item-link::before {
+            top: 10px !important;
+            height: 80% !important;
+        }
+
+        .home-heading .highlight {
+            font-size: 20px !important;
+        }
+    }
+
+    @media (max-width: 320px) {
+        .home-heading.title {
+            font-size: 15px !important;
+        }
+
+        .home-heading .highlight::before,
+        .home-page-common .post-list .post-item-link::before {
+            top: 5px !important;
+            height: 75% !important;
+        }
+
+        .home-heading .highlight {
+            font-size: 18px !important;
+        }
+    }
+
+    .home-heading.title .highlight.generator {
+        z-index: 10;
+        position: relative;
+        padding: 0 25px;
+        color: #000;
+    }
+
+    .home-heading.title {
+        z-index: 10 !important;
+    }
+
+    @media (max-width: 500px) {
+        .home-heading.title .highlight {
+            padding: 0px;
+            position: initial;
+        }
+
+        .home-heading.title .highlight.generator {
+            position: initial;
+            padding: 0px;
+        }
+    }
+
+
+    .sitemap-container {
+        max-width: 738px;
+        width: 100%;
+        background: white;
+        border-radius: 10px;
+        padding: 32px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+</style>
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/0.4.1/html2canvas.min.js"></script>
+<div class="background-remover-tool">
+    <header class="xmlgen-header">
+        <div class="xmlgen-heading">
+
+            <P>Sitemap Generator Tool</P>
+        </div>
+        <div class="xmlgen-heading-helper">
+            <p>Create a custom robots.txt file to control how search engines crawl your website.</p>
+        </div>
+    </header>
+    <div class="xmlgen-container">
+        <form method="POST" id="sitemapForm" class="xmlgen-form">
+            <!-- Base URL Section -->
+            <div>
+                <p class="section-title">Base URL</p>
+                <input
+                    type="text"
+                    class="input-field"
+                    name="base_url"
+                    id="base_url"
+                    placeholder="Enter URL"
+                    value="<?php echo htmlspecialchars($_POST['base_url'] ?? ''); ?>"
+                    required>
+            </div>
+
+            <!-- Include/Exclude Paths Section -->
+            <div class="two-column">
+                <!-- Include Paths -->
+                <div class="column">
+                    <p class="section-title">Include Paths (Optional)</p>
+                    <input
+                        type="text"
+                        class="input-field-small"
+                        name="include_paths"
+                        id="include_paths"
+                        placeholder="Enter Path"
+                        value="<?php echo htmlspecialchars($_POST['include_paths'] ?? ''); ?>">
+                    <div class="help-text">
+                        Only URLs containing these patterns will be included in the sitemap.<br>
+                        Enter comma-separated patterns (they match anywhere in the URL path).
+                    </div>
+                    <div class="examples">
+                        <div class="">Examples:</div>
+                        <div class="example-item">• copilot - Includes /copilot, /features/copilot, /github-copilot/pro</div>
+                        <div class="example-item">• blog, products - Includes any URL containing "blog" or "products"</div>
+                        <div class="example-item">• Leave empty to include all URLs (except those excluded below)</div>
+                    </div>
+                </div>
+
+                <!-- Exclude Paths -->
+                <div class="column">
+                    <p class="section-title">Exclude Paths (Optional)</p>
+                    <input
+                        type="text"
+                        class="input-field-small"
+                        name="exclude_paths"
+                        id="exclude_paths"
+                        placeholder="Enter Path"
+                        value="<?php echo htmlspecialchars($_POST['exclude_paths'] ?? ''); ?>">
+                    <div class="help-text">
+                        URLs containing these patterns will be excluded from the sitemap.<br>
+                        Enter comma-separated patterns (they match anywhere in the URL path).
+                    </div>
+                    <div class="examples">
+                        <div class="">Examples:</div>
+                        <div class="example-item">• admin - Excludes /admin, /admin/users, /system/admin</div>
+                        <div class="example-item">• login, cart, checkout - Excludes any URL with these words</div>
+                        <div class="example-item">• private - Excludes /private, /user/private, /docs/private</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="xmlgen-btn-row">
+                <button type="submit" class="xmlgen-btn analyze" id="generateBtn">Generate Sitemap</button>
+                <button type="button" class="xmlgen-btn reset" id="resetBtn" title="Reset">
+                    <svg width="20" height="20" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round" viewBox="0 0 24 24">
+                        <polyline points="1 4 1 10 7 10" />
+                        <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+                    </svg>
+                </button>
+            </div>
+        </form>
+
+        <?php if ($error): ?>
+            <div class="error-message">❌ <?php echo htmlspecialchars($error); ?></div>
+        <?php endif; ?>
+
+        <?php if ($report && $fullXmlContent): ?>
+            <!-- Results Section -->
+            <div class="results-section <?php echo ($report && !$error) ? 'shown' : ''; ?>" id="resultsSection">
+                <p class="section-title">Sitemap Generated:</p>
+
+                <!-- More Information Box -->
+                <div class="info-box">
+                    <div class="info-title">More Information:</div>
+                    <div class="info-item">
+                        <?php if (!empty($debugInfo)): ?>
+                            <?php foreach ($debugInfo as $info): ?>
+                                <p><?php echo htmlspecialchars($info); ?></p>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <p>No additional information available</p>
+                        <?php endif; ?>
+                    </div>
+                </div>
+                <div class="stats-box">
+                    <div class="stats-first">URLs Sitemap: <?php echo $report['count']; ?></div>
+                    <div class="stats-item">Total Pages Crawled: <?php echo $report['crawled']; ?> ( <?php echo $report['excluded']; ?> Excluded )</div>
+                </div>
+                <div>
+                    <p class="section-title">XML Preview:</p>
+                    <div class="preview-box" id="previewBox">
+                        <div class="preview-header" id="previewHeader">
+                            <div class="info-title">XML Sitemap</div>
+                            <p class="copy-btn" id="copyBtn">
+                                <span class="copy-btn-icon">
+                                    <img src="media/background-img/XmlSItemap5.webp" alt="Copy vector">
+                                </span>
+                                <span class="copy-text">Click to Copy</span>
+                            </p>
+                        </div>
+                        <div class="preview-content" id="xmlContent">
+                            <?php
+                            // Removes carriage returns for cross-platform compatibility
+                            $fullXmlContent = str_replace("\r", '', $fullXmlContent);
+                            // Replace any block of 2 or more newlines with just 1 newline
+                            $cleanPreview = preg_replace('/\n{2,}/', "\n", trim($fullXmlContent));
+                            echo htmlspecialchars($cleanPreview);
+                            ?>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Download Buttons -->
+                <div class="download-section">
+                    <a href="?action=download&file=<?php echo urlencode($report['downloads']['XML Sitemap']); ?>" class="btn-download">Download XML Sitemap</a>
+                    <a href="?action=download&file=<?php echo urlencode($report['downloads']['HTML Tree']); ?>" class="btn-download">Download HTML Tree View</a>
+                    <button type="button" class="xmlgen-btn reset" id="resetBtn-bottom" title="Reset">
+                        <svg width="20" height="20" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"
+                            stroke-linejoin="round" viewBox="0 0 24 24">
+                            <polyline points="1 4 1 10 7 10" />
+                            <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+                        </svg>
+                    </button>
+                </div>
+
+
+            </div>
+        <?php endif; ?>
+        <!-- <?php if ($report && $fullXmlContent): ?>
+            <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                    const sitemapTitle = document.querySelector('.results-section .section-title');
+                    if (sitemapTitle) {
+                        sitemapTitle.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
+                        });
+                    }
+                });
+            </script>
+        <?php endif; ?> -->
+
+    </div>
+
+
+
+    <div class="example-images">
+        <img src="media/background-img/XmlSItemap2.webp" alt="Example 2" class="example-img img-right">
+        <img src="media/background-img/XmlSItemap1.webp" alt="Example 1" class="example-img img-left">
+    </div>
+</div>
+
+
+
+<!-- content parts -->
+<div class="container block1">
+
+    <h2 class="home-heading title"> <span class="highlight">How to Use the Sitemap Generator Tool</span> </h2>
+
+    <div class="steps">
+        <div class="step">
+            <span class="step-title">Step 1</span>
+            <p class="step-name">Enter Homepage URL</p>
+            <p class="step-description">Paste your website’s main URL to start the sitemap creation process.
+            </p>
+        </div>
+
+        <div class="step">
+            <span class="step-title">Step 2</span>
+            <p class="step-name"> Start Sitemap Scan</p>
+            <p class="step-description">Click the generate button to let the tool crawl and detect site pages.</p>
+        </div>
+
+        <div class="step">
+            <span class="step-title">Step 3</span>
+            <p class="step-name">Review Crawled URLs</p>
+            <p class="step-description">View the list of discovered pages included in your sitemap structure.</p>
+        </div>
+        <div class="step">
+            <span class="step-title">Step 4</span>
+            <p class="step-name">Download XML Sitemap</p>
+            <p class="step-description">Download your sitemap file and use it for SEO submissions.</p>
+        </div>
+
+        <div class="step">
+            <span class="step-title">Step 5</span>
+            <p class="step-name">Submit to Search Engines</p>
+            <p class="step-description">Submit the generated sitemap to Google Search Console or other webmaster tools for indexing.</p>
+        </div>
+    </div>
+</div>
+<!-- 3rd block -->
+<div class="thirdblock">
+    <div class="custom1">
+        <div class="custom">
+            <div class="row" style="margin-bottom: 0px !important ">
+                <div class="col-md-12 col-sm-12">
+                    <div class="ecommmerce_content">
+                        <h2 class="home-heading title" style="text-align: center">
+                            <span class="highlight generator">What is a Sitemap Generator ?</span>
+
+                        </h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="custom1">
+        <div class="custom">
+            <div class="row cloud-row-one">
+                <div class="col-md-6 col-sm-6 firstblock">
+                    <div class="ecommmerce_content">
+
+                        <p>
+                            Generate a clean and SEO-friendly sitemap for your website instantly with our free Sitemap Generator. Whether you're a website owner, SEO professional, or Marketer, this tool helps search engines discover your pages faster and index your website more efficiently. Simply enter your website's homepage URL, and our tool will crawl the site to automatically detect links and generate a well-structured XML sitemap. Designed for accuracy and ease, this sitemap generator ensures every important page is included to enhance your website’s search visibility and crawling efficiency.
+
+                        </p>
+                    </div>
+                </div>
+                <div class="col-md-6 col-sm-6 secondblock">
+                    <div class="ecommerce_img">
+                        <img
+                            class="lazy"
+                            src="media/background-img/XmlSItemap3.webp"
+                            width="350"
+                            height="250"
+                            alt="Attract New Customers" />
+                    </div>
+                </div>
+            </div>
+            <div class="row cloud-row-two">
+                <div class="col-md-6 col-sm-6 secondblock">
+                    <div class="ecommerce_img">
+                        <img
+                            class="lazy"
+                            src="media/background-img/XmlSItemap4.webp"
+                            width="350"
+                            height="250"
+                            alt="Increased Customer Satisfaction" />
+                    </div>
+                </div>
+                <div class="col-md-6 col-sm-6 firstblock">
+                    <div class="ecommmerce_content">
+
+                        <p>
+                            More than just a basic link extractor, our sitemap creator ensures a proper sitemap format compatible with major search engines. It scans your website structure and builds a neatly organized XML file you can download and submit directly to Google Search Console or other SEO tools. Ideal for blogs, business websites, eCommerce stores, and landing pages, this free online sitemap generator saves time and improves your site’s technical SEO foundation. Enjoy a simple interface with quick results, helping you keep your site indexed and optimized without manual work.
+
+                        </p>
+
+                    </div>
+                </div>
+            </div>
+            <!--  -->
+
+
+        </div>
+    </div>
+
+</div>
+
+<div class="fourthblock">
+    <div class="footer">
+        <span>Generate your sitemap now-fast, accurate, and SEO-ready!</span>
+    </div>
+    <button>Generate Now</button>
+</div>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('sitemapForm');
+        const generateBtn = document.getElementById('generateBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const resetBtnbtm = document.getElementById('resetBtn-bottom');
+        const baseUrlInput = document.getElementById('base_url');
+        const includePathsInput = document.getElementById('include_paths');
+        const excludePathsInput = document.getElementById('exclude_paths');
+        const resultsSection = document.getElementById('resultsSection');
+        const copyBtn = document.getElementById('copyBtn');
+        const previewBox = document.getElementById('previewBox');
+        const previewHeader = document.getElementById('previewHeader');
+
+        // Form submission handler
+        form.addEventListener('submit', function(e) {
+            generateBtn.classList.add('loading');
+            generateBtn.disabled = true;
+            resetBtn.disabled = true;
+            generateBtn.textContent = 'Generating...';
+
+            // Hide results section when generating
+            if (resultsSection) {
+                resultsSection.classList.remove('show');
+            }
+
+            // Disable inputs after 600ms
+            setTimeout(function() {
+                baseUrlInput.disabled = true;
+                includePathsInput.disabled = true;
+                excludePathsInput.disabled = true;
+            }, 600);
+        });
+
+        // Reset button handler
+        resetBtn.addEventListener('click', function() {
+            if (!resetBtn.disabled) {
+                baseUrlInput.value = '';
+                includePathsInput.value = '';
+                excludePathsInput.value = '';
+                baseUrlInput.disabled = false;
+                includePathsInput.disabled = false;
+                excludePathsInput.disabled = false;
+                baseUrlInput.focus();
+                scrollXmlgenContainerTo(0);
+                // Hide results
+                if (resultsSection) {
+                    resultsSection.classList.add('hidden');
+
+
+                }
+            }
+        });
+        resetBtnbtm.addEventListener('click', function() {
+            if (!resetBtn.disabled) {
+                baseUrlInput.value = '';
+                includePathsInput.value = '';
+                excludePathsInput.value = '';
+                baseUrlInput.disabled = false;
+                includePathsInput.disabled = false;
+                excludePathsInput.disabled = false;
+                baseUrlInput.focus();
+                scrollXmlgenContainerTo(0);
+                // Hide results
+                if (resultsSection) {
+                    resultsSection.classList.add('hidden');
+
+
+
+                }
+            }
+        });
+        // Copy button handler
+        if (copyBtn) {
+            copyBtn.addEventListener('click', function() {
+                const xmlContent = document.getElementById('xmlContent');
+                const textToCopy = xmlContent.textContent;
+
+                navigator.clipboard.writeText(textToCopy).then(function() {
+                    const copyText = copyBtn.querySelector('.copy-text');
+                    const originalText = copyText.textContent;
+
+                    copyBtn.classList.add('copied');
+                    copyText.textContent = 'Copied!';
+
+                    setTimeout(function() {
+                        copyBtn.classList.remove('copied');
+                        copyText.textContent = originalText;
+                    }, 2000);
+                }).catch(function(err) {
+                    console.error('Failed to copy:', err);
+                    alert('Failed to copy to clipboard');
+                });
+            });
+        }
+
+        // Preview box scroll handler
+        if (previewBox && previewHeader) {
+            previewBox.addEventListener('scroll', function() {
+                if (previewBox.scrollTop > 0) {
+                    previewHeader.classList.add('scrolled');
+                } else {
+                    previewHeader.classList.remove('scrolled');
+                }
+            });
+        }
+    });
+    const previewBoxes = document.querySelectorAll('.preview-box');
+
+    previewBoxes.forEach(box => {
+        const header = box.querySelector('.preview-header');
+        box.addEventListener('scroll', () => {
+            if (box.scrollTop > 0) {
+                header.classList.add('scrolled');
+            } else {
+                header.classList.remove('scrolled');
+            }
+        });
+    });
+    // Call this function once the result section is rendered
+    function scrollXmlgenContainerTo(offsetPx) {
+        const container = document.querySelector('.xmlgen-container');
+        if (container) {
+            container.scrollTo({
+                top: offsetPx,
+                behavior: 'smooth'
+            });
+        }
+    }
+
+    // Example: Scroll to 500px internally after results appear
+    if (document.querySelector('.results-section .section-title')) {
+        scrollXmlgenContainerTo(580); // scrolls the container to 500px from top
+    }
+
+    require(['jquery'], function($) {
+        $(document).ready(function() {
+            $('.fourthblock button').on('click', function() {
+                const target = $('.background-remover-tool');
+                if (target.length) {
+                    $('html, body').animate({
+                        scrollTop: target.offset().top
+                    }, 800);
+                }
+            });
+        });
+    });
+</script>

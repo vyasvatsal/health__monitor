@@ -32,39 +32,24 @@ class ImageCompressionController extends Controller
             // Read image from file system
             $image = $manager->read($file->getPathname());
 
-            // Compression logic
-            // We'll standardise functionality here. 
-            // For now, let's just re-encode with specified quality to reduce size.
-            // If the image is massive, we might want to resize it safely too, but let's stick to compression first.
-
             $quality = (int) $request->input('quality', 80);
 
-            // Encode the image
-            // We use the same format as input if possible, or fallback to jpeg
-            $encoded = $image->toJpeg($quality);
-            if ($originalMime == 'image/png') {
-                $encoded = $image->toPng(); // PNG compression is different, usually lossless or indexed.
-                // For significant reduction on PNG, we might need to change implementation or convert to lossy format like WebP/JPEG
-                // Let's force Convert to WebP if user agrees? Or just Keep original format?
-                // For this "demo", let's offer WebP conversion as it's efficient.
-                // Actually, let's stick to simple quality adjustment for JPEGs and simple read/write for others to strip metadata.
-            }
-
-            // Let's simplify: Convert everything to WebP for maximum compression if it's for web use?
-            // Or respect input. Let's respect input but default to JPEG 80% if it's a photo.
-
-            // Better approach for "Compress":
-            // 1. Resize if too big (> 2000px width)
-            // 2. Reduce quality
-
+            // 1. Resize if too big (> 2000px width) to save memory and processing time
             if ($image->width() > 2000) {
                 $image->scale(width: 2000);
             }
 
-            $encoded = $image->toJpeg($quality);
-
-            // If original was clear PNG/WebP, maybe we should keep it.
-            // For now, let's just return a JPEG preview for simplicity in this V1.
+            // 2. Encode based on original format, fallback to JPEG
+            if ($originalMime == 'image/png') {
+                $encoded = $image->toPng();
+                $finalMime = 'image/png';
+            } elseif ($originalMime == 'image/webp') {
+                $encoded = $image->toWebp($quality);
+                $finalMime = 'image/webp';
+            } else {
+                $encoded = $image->toJpeg($quality);
+                $finalMime = 'image/jpeg';
+            }
 
             $compressedData = (string) $encoded;
             $compressedSize = strlen($compressedData);
@@ -73,7 +58,7 @@ class ImageCompressionController extends Controller
             // Store in DB
             $tempImage = \App\Models\TemporaryImage::create([
                 'file_name' => $file->getClientOriginalName(),
-                'mime_type' => 'image/jpeg', // We are forcing JPEG for now
+                'mime_type' => $finalMime,
                 'image_data' => $base64,
                 'original_size' => $originalSize,
                 'compressed_size' => $compressedSize,
@@ -90,12 +75,12 @@ class ImageCompressionController extends Controller
                 'compressed_size' => $this->formatBytes($compressedSize),
                 'saved_bytes' => $this->formatBytes($originalSize - $compressedSize),
                 'saved_percent' => round((($originalSize - $compressedSize) / $originalSize) * 100, 2) . '%',
-                'image_base64' => 'data:image/jpeg;base64,' . $base64,
-                'mime_type' => 'image/jpeg',
+                'image_base64' => 'data:' . $finalMime . ';base64,' . $base64,
+                'mime_type' => $finalMime,
                 'download_url' => route('tools.compression.download', $tempImage->id),
             ]);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             Log::error('Image compression failed: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
