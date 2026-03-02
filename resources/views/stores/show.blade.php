@@ -69,41 +69,7 @@
                 <!-- Main Content (Integration & Simulator) -->
                 <div class="lg:col-span-2 space-y-6">
 
-                    <!-- Integration Code Block -->
-                    <div class="bg-[#1e293b] rounded-xl border border-white/10 overflow-hidden">
-                        <div
-                            class="px-6 py-4 border-b border-white/5 bg-slate-900/50 flex justify-between items-center">
-                            <h3 class="font-bold text-white flex items-center gap-2">
-                                <svg class="w-5 h-5 text-emerald-500" fill="none" viewBox="0 0 24 24"
-                                    stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-                                </svg>
-                                Laravel SDK Integration
-                            </h3>
-                            <span class="text-xs text-slate-500">Add to .env</span>
-                        </div>
-                        <div class="p-6 relative group">
-                            <div class="absolute top-4 right-4">
-                                <button
-                                    onclick="navigator.clipboard.writeText(document.getElementById('install-code').innerText)"
-                                    class="px-3 py-1.5 bg-slate-800 hover:bg-emerald-600 text-white text-xs rounded-lg transition-all border border-white/10 opacity-0 group-hover:opacity-100 shadow-xl">
-                                    Copy snippet
-                                </button>
-                            </div>
-                            <pre id="install-code"
-                                class="font-mono text-sm text-blue-300 bg-[#0f172a] p-4 rounded-lg overflow-x-auto border border-white/5 select-all"># 1. Add Repository
-composer config repositories.aihealth-sdk vcs https://github.com/vyasvatsal/aihealth-laravel-sdk.git
-
-# 2. Install via Composer
-composer require aihealth/laravel-sdk:dev-main
-
-# 3. Add these to your .env file
-AIHEALTH_DSN={{ rtrim(config('app.url'), '/') }}/api/ingest
-AIHEALTH_PROJECT_KEY={{ $store->public_key ?? $store->api_key }}
-AIHEALTH_PROJECT_ID={{ $store->id }}</pre>
-                        </div>
-                    </div>
+                    <!-- Integration Code Block Removed (Located in Connection Guide Page now) -->
 
                     <!-- Simulator -->
                     <div class="bg-[#1e293b] rounded-xl border border-white/10 overflow-hidden">

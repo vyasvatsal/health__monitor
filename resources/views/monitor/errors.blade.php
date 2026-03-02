@@ -39,10 +39,10 @@
                 </div>
 
                 <div class="flex gap-3">
-                    <button onclick="document.getElementById('integration-modal').showModal()"
+                    <a href="{{ route('settings.connection') }}"
                         class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2 shadow-lg shadow-emerald-500/20">
                         <i class="material-icons text-sm">add_link</i> Connection Guide
-                    </button>
+                    </a>
                     <!-- Time Range Filter (Mock) -->
                     <div class="bg-[#1e293b] rounded-lg border border-slate-700 p-1 flex">
                         <button class="px-3 py-1 text-xs font-medium text-white bg-slate-700 rounded shadow-sm">24h</button>
@@ -192,11 +192,11 @@
 
                                         <td class="px-6 py-4 align-top w-32">
                                             <span x-bind:class="{
-                                                                                                                'bg-rose-500/10 text-rose-400 border-rose-500/20': error.severity === 'critical' || error.type === 'Error',
-                                                                                                                'bg-amber-500/10 text-amber-400 border-amber-500/20': error.severity === 'warning' || error.type === 'ResourceError',
-                                                                                                                'bg-purple-500/10 text-purple-400 border-purple-500/20': error.type === 'NetworkError',
-                                                                                                                'bg-blue-500/10 text-blue-400 border-blue-500/20': (error.severity === 'info' || !error.severity) && error.type !== 'NetworkError' && error.type !== 'ResourceError' && error.type !== 'Error'
-                                                                                                            }"
+                                                                                                                    'bg-rose-500/10 text-rose-400 border-rose-500/20': error.severity === 'critical' || error.type === 'Error',
+                                                                                                                    'bg-amber-500/10 text-amber-400 border-amber-500/20': error.severity === 'warning' || error.type === 'ResourceError',
+                                                                                                                    'bg-purple-500/10 text-purple-400 border-purple-500/20': error.type === 'NetworkError',
+                                                                                                                    'bg-blue-500/10 text-blue-400 border-blue-500/20': (error.severity === 'info' || !error.severity) && error.type !== 'NetworkError' && error.type !== 'ResourceError' && error.type !== 'Error'
+                                                                                                                }"
                                                 class="px-2.5 py-1 rounded-md text-[11px] font-bold border uppercase tracking-wider block w-fit text-center shadow-sm"
                                                 x-text="error.type || 'ERROR'"></span>
                                         </td>
@@ -323,10 +323,10 @@
                         <div>
                             <span
                                 x-bind:class="{
-                                                                                                                                        'bg-rose-500/10 text-rose-400 border-rose-500/20': selectedError?.severity === 'critical',
-                                                                                                                                        'bg-amber-500/10 text-amber-400 border-amber-500/20': selectedError?.severity === 'warning',
-                                                                                                                                        'bg-blue-500/10 text-blue-400 border-blue-500/20': selectedError?.severity === 'info'
-                                                                                                                                    }"
+                                                                                                                                            'bg-rose-500/10 text-rose-400 border-rose-500/20': selectedError?.severity === 'critical',
+                                                                                                                                            'bg-amber-500/10 text-amber-400 border-amber-500/20': selectedError?.severity === 'warning',
+                                                                                                                                            'bg-blue-500/10 text-blue-400 border-blue-500/20': selectedError?.severity === 'info'
+                                                                                                                                        }"
                                 class="px-2 py-1 rounded text-xs font-bold border uppercase tracking-wider"
                                 x-text="selectedError?.type"></span>
                             <h2 class="text-white font-bold text-lg mt-2 truncate max-w-md">Error Details</h2>
@@ -538,113 +538,7 @@
                 <div x-show="selectedError" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
                     x-transition.opacity @click="selectedError = null"></div>
 
-                <!-- Integration Modal -->
-                <dialog id="integration-modal"
-                    class="bg-transparent backdrop:bg-black/80 backdrop:backdrop-blur-sm p-0 w-full max-w-2xl rounded-2xl shadow-2xl open:animate-fade-in">
-                    <div class="bg-[#0f172a] border border-white/10 rounded-2xl flex flex-col text-white">
-                        <div class="flex items-center justify-between p-6 border-b border-white/5">
-                            <h3 class="text-lg font-bold">Connect Your Project</h3>
-                            <button onclick="document.getElementById('integration-modal').close()"
-                                class="text-slate-400 hover:text-white transition-colors">
-                                <i class="material-icons">close</i>
-                            </button>
-                        </div>
-                        <div class="p-6 space-y-6" x-data="{ tab: 'laravel' }">
-
-                            <!-- Keys Display -->
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-2">
-                                <div class="bg-black/30 p-3 rounded-lg border border-white/5">
-                                    <span class="text-xs text-slate-500 uppercase font-bold block mb-1">Public Key
-                                        (Frontend)</span>
-                                    <code
-                                        class="text-emerald-400 font-mono text-xs select-all">{{ $currentStore->public_key }}</code>
-                                </div>
-                                <div class="bg-black/30 p-3 rounded-lg border border-white/5">
-                                    <span class="text-xs text-slate-500 uppercase font-bold block mb-1">Secret Key
-                                        (Backend)</span>
-                                    <code
-                                        class="text-indigo-400 font-mono text-xs select-all">{{ $currentStore->secret_key }}</code>
-                                </div>
-                            </div>
-
-                            <p class="text-sm text-slate-400">Use the SDK to send errors from your application to Health
-                                Monitor.</p>
-
-                            <div class="flex border-b border-white/10">
-                                <button @click="tab = 'laravel'"
-                                    :class="tab === 'laravel' ? 'border-emerald-500 text-emerald-400' : 'border-transparent text-slate-400 hover:text-white'"
-                                    class="px-4 py-2 border-b-2 font-medium text-sm transition-colors">Laravel
-                                    (Backend)</button>
-                                <button @click="tab = 'js'"
-                                    :class="tab === 'js' ? 'border-emerald-500 text-emerald-400' : 'border-transparent text-slate-400 hover:text-white'"
-                                    class="px-4 py-2 border-b-2 font-medium text-sm transition-colors">JavaScript
-                                    (Frontend)</button>
-                            </div>
-
-                            <!-- Laravel Tab -->
-                            <div x-show="tab === 'laravel'" class="space-y-4">
-                                <div class="space-y-2">
-                                    <h4 class="text-sm font-medium text-white flex items-center gap-2"><span
-                                            class="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xs font-bold">1</span>
-                                        Install via Composer</h4>
-                                    <div class="bg-black/50 rounded-lg p-3 border border-white/5 relative group">
-                                        <button class="absolute top-2 right-2 text-slate-500 hover:text-white"
-                                            onclick="navigator.clipboard.writeText(this.nextElementSibling.innerText)"><i
-                                                class="material-icons text-sm">content_copy</i></button>
-                                        <pre
-                                            class="text-xs text-blue-300 font-mono overflow-x-auto p-2">composer require aihealth/laravel-monitor</pre>
-                                    </div>
-                                    <p class="text-xs text-slate-400 mt-1">This will install the standalone SDK into your
-                                        application.</p>
-                                </div>
-
-                                <div class="space-y-2">
-                                    <h4 class="text-sm font-medium text-white flex items-center gap-2"><span
-                                            class="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xs font-bold">2</span>
-                                        Configure .ENV File</h4>
-                                    <p class="text-xs text-slate-400 mb-2">Simply add your unique DSN to your `.env` file to
-                                        start tracking errors instantly.</p>
-                                    <div class="bg-black/50 rounded-lg p-3 border border-white/5 relative group">
-                                        <button class="absolute top-2 right-2 text-slate-500 hover:text-white"
-                                            onclick="navigator.clipboard.writeText(this.nextElementSibling.innerText)"><i
-                                                class="material-icons text-sm">content_copy</i></button>
-                                        <pre class="text-xs text-emerald-300 font-mono overflow-x-auto p-2">AIHEALTH_DSN="{{ str_replace('://', '://' . $currentStore->secret_key . '@', url('/api/ingest')) }}"
-        AIHEALTH_SEND_LOGS=true
-        AIHEALTH_SEND_EXCEPTIONS=true</pre>
-                                    </div>
-                                    <p
-                                        class="text-xs text-emerald-400/80 mt-2 bg-emerald-500/10 p-2 rounded border border-emerald-500/20 flex gap-2 items-center">
-                                        <i class="material-icons text-sm">auto_awesome</i> You're all set! No manual code
-                                        changes required.
-                                    </p>
-                                </div>
-                            </div>
-
-                            <!-- JS Tab -->
-                            <div x-show="tab === 'js'" class="space-y-4">
-                                <div class="space-y-2">
-                                    <h4 class="text-sm font-medium text-white">1. Add to Layout (<code>app.blade.php</code>)
-                                    </h4>
-                                    <div class="bg-black/50 rounded-lg p-3 border border-white/5 relative group">
-                                        <button class="absolute top-2 right-2 text-slate-500 hover:text-white"
-                                            onclick="navigator.clipboard.writeText(this.nextElementSibling.innerText)"><i
-                                                class="material-icons text-sm">content_copy</i></button>
-                                        <pre class="text-xs text-blue-300 font-mono overflow-x-auto p-2">&lt;script src="{{ url('/js/monitor-client.js') }}"&gt;&lt;/script&gt;
-        &lt;script&gt;
-            if (typeof HealthMonitor !== 'undefined') {
-                HealthMonitor.init({
-                    endpoint: '{{ url('/api/v1/track') }}',
-                    publicKey: '{{ $currentStore->public_key }}',
-                    debug: true
-                });
-            }
-        &lt;/script&gt;</pre>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </dialog>
+                <!-- Integration Modal Removed (Now links to Connection Guide Page) -->
 
             </div>
         </div>
