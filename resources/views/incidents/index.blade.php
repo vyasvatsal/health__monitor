@@ -1,22 +1,24 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex items-center justify-between">
-            <h2
-                class="font-bold text-2xl text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-orange-400 leading-tight">
-                {{ __('Incidents Overview') }}
-            </h2>
-            <a href="{{ route('incidents.create') }}"
-                class="flex items-center gap-2 text-sm text-white bg-gradient-to-r from-red-600 to-orange-600 px-5 py-2.5 rounded-xl font-bold shadow-[0_0_20px_rgba(239,68,68,0.3)] hover:shadow-[0_0_25px_rgba(239,68,68,0.5)] transition-all hover:scale-[1.02] border border-red-500/50">
-                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                </svg>
-                Report Incident
-            </a>
-        </div>
+        {{ __('Incidents Overview') }}
     </x-slot>
 
     <div class="py-8 flex-1 flex flex-col">
         <div class="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 flex-1 flex flex-col space-y-8">
+
+            <div class="flex justify-between items-center">
+                <h2
+                    class="font-bold text-3xl text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-orange-400 leading-tight">
+                    Incidents
+                </h2>
+                <a href="{{ route('incidents.create') }}"
+                    class="flex items-center gap-2 text-sm text-white bg-gradient-to-r from-red-600 to-orange-600 px-5 py-2.5 rounded-xl font-bold shadow-[0_0_20px_rgba(239,68,68,0.3)] hover:shadow-[0_0_25px_rgba(239,68,68,0.5)] transition-all hover:scale-[1.02] border border-red-500/50">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    Report Incident
+                </a>
+            </div>
 
             @if(session('success'))
                 <div

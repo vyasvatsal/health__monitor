@@ -1,23 +1,25 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex items-center justify-between">
-            <h2
-                class="font-bold text-2xl text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-orange-400 leading-tight">
-                {{ __('Report New Incident') }}
-            </h2>
-            <a href="{{ route('incidents.index') }}"
-                class="flex items-center gap-2 text-sm text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-700 px-4 py-2 rounded-xl transition-all border border-white/5 shadow-sm">
-                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                </svg>
-                Cancel
-            </a>
-        </div>
+        {{ __('Report Incident') }}
     </x-slot>
 
     <div class="py-8 flex-1 flex flex-col">
         <div class="max-w-4xl mx-auto w-full px-4 sm:px-6 lg:px-8 flex-1 flex flex-col space-y-8">
+
+            <div class="flex justify-between items-center">
+                <h2
+                    class="font-bold text-3xl text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-orange-400 leading-tight">
+                    Report New Incident
+                </h2>
+                <a href="{{ route('incidents.index') }}"
+                    class="flex items-center gap-2 text-sm text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-700 px-4 py-2 rounded-xl transition-all border border-white/5 shadow-sm">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    </svg>
+                    Cancel
+                </a>
+            </div>
             <div
                 class="bg-slate-900/40 backdrop-blur-xl overflow-hidden rounded-2xl border border-white/5 shadow-2xl relative">
                 <div
