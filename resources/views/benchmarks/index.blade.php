@@ -34,13 +34,22 @@
 
                     <form method="POST" action="{{ route('benchmarks.store') }}" class="grid grid-cols-1 md:grid-cols-12 gap-6 items-end">
                         @csrf
-                        <div class="md:col-span-5">
+                        <div class="md:col-span-4">
+                            <x-input-label for="store_id" :value="__('Select Project')" class="text-slate-300 font-medium mb-2" />
+                            <select id="store_id" name="store_id" required
+                                class="w-full bg-slate-950/50 border border-slate-700/50 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 rounded-xl px-4 py-3 text-white transition-all outline-none appearance-none">
+                                @foreach($stores as $st)
+                                    <option value="{{ $st->id }}" class="bg-slate-900">{{ $st->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="md:col-span-3">
                             <x-input-label for="name" :value="__('Competitor Name')" class="text-slate-300 font-medium mb-2" />
                             <input id="name" name="name" type="text"
                                 class="w-full bg-slate-950/50 border border-slate-700/50 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 rounded-xl px-4 py-3 text-white placeholder-slate-600 transition-all outline-none"
                                 placeholder="e.g. Amazon" required />
                         </div>
-                        <div class="md:col-span-5">
+                        <div class="md:col-span-3">
                             <x-input-label for="url" :value="__('Competitor URL')" class="text-slate-300 font-medium mb-2" />
                             <input id="url" name="url" type="url"
                                 class="w-full bg-slate-950/50 border border-slate-700/50 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 rounded-xl px-4 py-3 text-white placeholder-slate-600 transition-all outline-none"
@@ -125,7 +134,12 @@
                                         @endif
                                         <div class="relative z-10">
                                             <div class="flex justify-between items-start mb-6 h-6">
-                                                <div class="text-sm font-black text-slate-300 uppercase tracking-widest">My Store</div>
+                                                <div class="text-sm font-black text-slate-300 uppercase tracking-widest flex items-center gap-2">
+                                                    My Store
+                                                    <span class="text-[10px] text-slate-500 normal-case bg-slate-800/50 px-2 py-0.5 rounded border border-slate-700/50 truncate max-w-[100px]" title="{{ $competitor->store->name }}">
+                                                        {{ $competitor->store->name }}
+                                                    </span>
+                                                </div>
                                                 @if($winner === 'me')
                                                     <div class="px-2 py-1 rounded-md bg-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase tracking-wider border border-emerald-500/30">
                                                         WINNER

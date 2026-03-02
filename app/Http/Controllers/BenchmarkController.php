@@ -11,31 +11,35 @@ class BenchmarkController extends Controller
 {
     public function index()
     {
-        $store = Store::where('user_id', auth()->id())->first();
+        $stores = Store::where('user_id', auth()->id())->get();
 
-        if (!$store) {
+        if ($stores->isEmpty()) {
             return redirect()->route('stores.create')->with('info', 'Please create a project to access Benchmarks.');
         }
 
-        $competitors = Competitor::where('store_id', $store->id)
+        $competitors = Competitor::whereIn('store_id', $stores->pluck('id'))
             ->with([
+                'store',
                 'results' => function ($q) {
                     $q->latest()->limit(1);
                 }
             ])
             ->get();
 
-        return view('benchmarks.index', compact('competitors', 'store'));
+        return view('benchmarks.index', compact('competitors', 'stores'));
     }
 
     public function store(Request $request)
     {
         $request->validate([
+            'store_id' => 'required|exists:stores,id',
             'name' => 'required|string|max:255',
             'url' => 'required|url',
         ]);
 
-        $store = Store::where('user_id', auth()->id())->firstOrFail();
+        $store = Store::where('id', $request->store_id)
+            ->where('user_id', auth()->id())
+            ->firstOrFail();
 
         Competitor::create([
             'store_id' => $store->id,
