@@ -11,16 +11,28 @@
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
 
             <!-- Title Section -->
-            <div>
-                <h3 class="text-2xl font-bold text-white flex items-center gap-3">
-                    <svg class="w-8 h-8 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
-                    </svg>
-                    Real User UX & Speed
-                </h3>
-                <p class="mt-2 text-slate-400">Live native tracking of Core Web Vitals and Call-To-Action interaction rates
-                    from actual visitors on your projects.</p>
+            <!-- Title Section -->
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <h3 class="text-2xl font-bold text-white flex items-center gap-3">
+                        <svg class="w-8 h-8 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
+                        </svg>
+                        Real User UX & Speed
+                    </h3>
+                    <p class="mt-2 text-slate-400">Live native tracking of Core Web Vitals and Call-To-Action interaction rates
+                        from actual visitors on your projects.</p>
+                </div>
+                <div>
+                    <form action="{{ route('rum.crawl') }}" method="POST">
+                        @csrf
+                        <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                            Run Web Crawler
+                        </button>
+                    </form>
+                </div>
             </div>
 
             @if($metrics->isEmpty())
@@ -187,6 +199,130 @@
                         </table>
                     </div>
                 </div>
+
+                <!-- Discovered Pages & CTAs Table -->
+                @if(isset($crawledPages) && $crawledPages->isNotEmpty())
+                <div class="bg-[#1e293b] overflow-hidden shadow-sm rounded-lg border border-white/10 mt-8">
+                    <div class="px-6 py-4 border-b border-white/5 flex justify-between items-center bg-black/20">
+                        <h3 class="text-lg font-bold text-white">Discovered Pages & Target CTAs</h3>
+                        <span class="text-sm text-slate-400">Found {{ $crawledPages->count() }} pages</span>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-black/10 text-slate-400 text-xs uppercase tracking-wider">
+                                    <th class="px-6 py-4 font-medium">Page Title & URL</th>
+                                    <th class="px-6 py-4 font-medium text-center">Status</th>
+                                    <th class="px-6 py-4 font-medium text-center">Discovered CTAs</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-white/5">
+                                @foreach($crawledPages as $page)
+                                    <tr class="hover:bg-white/5 transition-colors group">
+                                        <!-- URL & Title -->
+                                        <td class="px-6 py-4">
+                                            <div class="flex flex-col">
+                                                <span class="text-white font-semibold text-sm block truncate max-w-sm"
+                                                    title="{{ $page->title }}">
+                                                    {{ $page->title ?: 'No Title' }}
+                                                </span>
+                                                <span class="text-slate-400 font-mono text-xs block truncate max-w-sm mt-1"
+                                                    title="{{ $page->url }}">
+                                                    {{ $page->url }}
+                                                </span>
+                                            </div>
+                                        </td>
+
+                                        <!-- Status -->
+                                        <td class="px-6 py-4 text-center">
+                                            @php
+                                                $statusClass = $page->status_code == 200 ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-red-500/20 text-red-500 border-red-500/30';
+                                            @endphp
+                                            <span class="inline-flex items-center justify-center px-2 py-1 rounded text-xs font-bold border {{ $statusClass }}">
+                                                {{ $page->status_code ?: 'Error' }}
+                                            </span>
+                                        </td>
+
+                                        <!-- CTAs -->
+                                        <td class="px-6 py-4 text-center">
+                                            @if($page->ctas->count() > 0)
+                                                <button
+                                                    onclick="document.getElementById('modal-crawled-{{ $page->id }}').classList.remove('hidden')"
+                                                    class="inline-flex items-center gap-1.5 px-3 py-1 bg-fuchsia-500/10 hover:bg-fuchsia-500/20 border border-fuchsia-500/20 rounded-full text-fuchsia-400 text-xs font-medium transition-colors">
+                                                    {{ $page->ctas->count() }} Discovered
+                                                    <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                    </svg>
+                                                </button>
+                                            @else
+                                                <span class="text-slate-600 text-xs">No CTAs</span>
+                                            @endif
+
+                                            <!-- Crawled Modal -->
+                                            @if($page->ctas->count() > 0)
+                                            <div id="modal-crawled-{{ $page->id }}" class="hidden fixed inset-0 z-[100] overflow-y-auto"
+                                                aria-labelledby="modal-title" role="dialog" aria-modal="true">
+                                                <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+                                                    <div class="fixed inset-0 bg-black/80 backdrop-blur-sm transition-opacity" aria-hidden="true"
+                                                        onclick="this.parentElement.parentElement.classList.add('hidden')"></div>
+                                                    <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+                                                    <div class="inline-block align-bottom bg-[#0f172a] rounded-xl border border-white/10 text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
+                                                        <div class="bg-[#1e293b] px-4 py-5 border-b border-white/5 sm:px-6 flex justify-between items-center">
+                                                            <h3 class="text-lg leading-6 font-medium text-white break-all flex flex-col items-start gap-1" id="modal-title">
+                                                                <span>Discovered CTAs on:</span>
+                                                                <span class="text-fuchsia-400 font-mono text-sm leading-tight">{{ $page->url }}</span>
+                                                            </h3>
+                                                            <button onclick="document.getElementById('modal-crawled-{{ $page->id }}').classList.add('hidden')"
+                                                                class="text-slate-400 hover:text-white">
+                                                                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                                                </svg>
+                                                            </button>
+                                                        </div>
+                                                        <div class="bg-[#0f172a] px-4 py-5 sm:p-6 p-0 overflow-y-auto max-h-[60vh]">
+                                                            <ul class="divide-y divide-white/5">
+                                                                @foreach($page->ctas as $cta)
+                                                                    <li class="py-4 text-left">
+                                                                        <div class="flex flex-col gap-2">
+                                                                            <div class="flex items-center gap-2">
+                                                                                <span class="px-2 py-0.5 rounded text-[10px] uppercase font-bold bg-slate-800 text-slate-400 border border-slate-700 mt-0.5">
+                                                                                    {{ $cta->tag }}
+                                                                                </span>
+                                                                                <span class="text-white font-medium break-words">"{{ $cta->text }}"</span>
+                                                                            </div>
+                                                                            @if($cta->css_classes)
+                                                                            <div class="text-xs font-mono text-slate-500 break-all bg-slate-900/50 p-2 rounded">
+                                                                                class="{{ $cta->css_classes }}"
+                                                                            </div>
+                                                                            @endif
+                                                                            @if($cta->href)
+                                                                            <div class="text-xs font-mono text-blue-400 break-all bg-slate-900/50 p-2 rounded truncate max-w-lg mt-1" title="{{ $cta->href }}">
+                                                                                href="{{ $cta->href }}"
+                                                                            </div>
+                                                                            @endif
+                                                                        </div>
+                                                                    </li>
+                                                                @endforeach
+                                                            </ul>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            @endif
+
+                                        </td>
+
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                @endif
 
                 <!-- CTA Modals -->
                 @foreach($ctaBreakdown as $url => $clicks)

@@ -88,6 +88,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Benchmarks
     Route::get('/benchmarks', [App\Http\Controllers\StoreController::class, 'index'])->name('benchmarks.index');
     Route::get('/rum', [App\Http\Controllers\RumDashboardController::class, 'index'])->name('rum.index');
+    Route::post('/rum/crawl', [App\Http\Controllers\RumDashboardController::class, 'crawl'])->name('rum.crawl');
 
     // Benchmarks
     Route::resource('benchmarks', App\Http\Controllers\BenchmarkController::class)

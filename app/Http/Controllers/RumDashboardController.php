@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 
 use App\Models\Store;
 use App\Models\PageMetrics;
+use App\Models\CrawledPage;
+use App\Jobs\CrawlStoreJob;
 use Illuminate\Support\Facades\DB;
 
 class RumDashboardController extends Controller
@@ -77,6 +79,22 @@ class RumDashboardController extends Controller
             }
         }
 
-        return view('rum.index', compact('store', 'metrics', 'latestGrades', 'ctaBreakdown', 'totalCtaClicks'));
+        // Get Crawled Pages from our new crawler
+        $crawledPages = CrawledPage::with('ctas')->where('store_id', $store->id)->get();
+
+        return view('rum.index', compact('store', 'metrics', 'latestGrades', 'ctaBreakdown', 'totalCtaClicks', 'crawledPages'));
+    }
+
+    public function crawl()
+    {
+        $store = Store::first();
+
+        if (!$store || empty($store->domain)) {
+            return redirect()->back()->with('error', 'Store missing or URL not set. Please configure connection settings.');
+        }
+
+        CrawlStoreJob::dispatch($store);
+
+        return redirect()->back()->with('success', 'Web crawler job dispatched successfully. It will map out pages and discover CTAs in the background.');
     }
 }
