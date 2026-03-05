@@ -157,8 +157,8 @@
                                     </p>
                                     <div class="bg-slate-900 rounded-lg p-4 border border-slate-800 overflow-x-auto relative group">
                                         <pre><code class="text-emerald-300 font-mono text-sm">AIHEALTH_DSN="http://{{ $store->public_key }}@{{ request()->getHost() . ':' . request()->getPort() }}/{{ $store->id }}"
-                                AIHEALTH_SEND_EXCEPTIONS=true
-                                AIHEALTH_SEND_LOGS=true</code></pre>
+                                            AIHEALTH_SEND_EXCEPTIONS=true
+                                            AIHEALTH_SEND_LOGS=true</code></pre>
                                     </div>
                                 </div>
 
@@ -174,7 +174,7 @@
                                     <div class="bg-slate-900 rounded-lg p-4 border border-slate-800 overflow-x-auto">
                                         <pre><code class="text-blue-300 font-mono text-sm">use Illuminate\Support\Facades\Schedule;
 
-                                Schedule::command('aihealth:send-health')->everyFiveMinutes();</code></pre>
+                                            Schedule::command('aihealth:send-health')->everyFiveMinutes();</code></pre>
                                     </div>
                                 </div>
 
@@ -197,6 +197,21 @@
                                         To
                                         explicitly track any button conversions, simply add the attribute <code
                                             class="text-indigo-400">data-aihealth-cta="button_name"</code> to your HTML tags.</p>
+                                </div>
+
+                                <!-- Step 4 -->
+                                <div>
+                                    <h4 class="text-md font-bold text-white mb-3 flex items-center gap-2">
+                                        <span
+                                            class="bg-indigo-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs">4</span>
+                                        Sync Routes for Web Crawler
+                                    </h4>
+                                    <p class="text-sm text-slate-400 mb-3">To enable automatic page analysis and CTA discovery, you
+                                        must synchronize your application's routes to the dashboard.</p>
+                                    <div
+                                        class="bg-slate-900 rounded-lg p-4 border border-slate-800 flex justify-between items-center group">
+                                        <code class="text-emerald-400 font-mono text-sm">php artisan aihealth:sync-routes</code>
+                                    </div>
                                 </div>
                             </div>
 

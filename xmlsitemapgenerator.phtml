@@ -267,7 +267,8 @@ function renderTreeHtml($node, $isRoot = true)
 function getDomainName($url)
 {
     $host = parse_url($url, PHP_URL_HOST);
-    if (!$host) return 'sitemap';
+    if (!$host)
+        return 'sitemap';
 
     $host = preg_replace('/^www\./', '', $host);
     $parts = explode('.', $host);
@@ -290,7 +291,8 @@ function matchesPathFilter($url, $includeList, $excludeList)
 
     foreach ($excludeList as $pattern) {
         $pattern = trim($pattern);
-        if (empty($pattern)) continue;
+        if (empty($pattern))
+            continue;
 
         $pattern = trim($pattern, '/');
 
@@ -305,7 +307,8 @@ function matchesPathFilter($url, $includeList, $excludeList)
 
     foreach ($includeList as $pattern) {
         $pattern = trim($pattern);
-        if (empty($pattern)) continue;
+        if (empty($pattern))
+            continue;
 
         $pattern = trim($pattern, '/');
 
@@ -321,7 +324,8 @@ function matchesPathFilter($url, $includeList, $excludeList)
 if (isset($_GET['action'], $_GET['file']) && $_GET['action'] === 'download') {
     $file = basename($_GET['file']);
     $path = sys_get_temp_dir() . '/' . $file;
-    if (!file_exists($path)) die("File not found");
+    if (!file_exists($path))
+        die("File not found");
 
     $ext = pathinfo($file, PATHINFO_EXTENSION);
     if ($ext === 'xml') {
@@ -359,16 +363,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $normalize = function (string $url): string {
             $u = parse_url($url);
-            if (!$u || empty($u['host'])) return '';
+            if (!$u || empty($u['host']))
+                return '';
             $scheme = $u['scheme'] ?? 'https';
 
             $host = preg_replace('/^www\./', '', $u['host']);
 
             $path = isset($u['path']) ? rtrim($u['path'], '/') : '';
-            if ($path === '') $path = '/';
+            if ($path === '')
+                $path = '/';
 
             $url = strtolower($scheme . '://' . $host . $path);
-            if (isset($u['query'])) $url .= '?' . $u['query'];
+            if (isset($u['query']))
+                $url .= '?' . $u['query'];
             return $url;
         };
 
@@ -397,21 +404,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         };
 
         $urlToAbsolute = function (string $base, string $rel): string|false {
-            if (parse_url($rel, PHP_URL_SCHEME) != '') return $rel;
+            if (parse_url($rel, PHP_URL_SCHEME) != '')
+                return $rel;
             if (substr($rel, 0, 2) === '//') {
                 $scheme = parse_url($base, PHP_URL_SCHEME);
                 return $scheme . ':' . $rel;
             }
             $baseParts = parse_url($base);
-            if (!isset($baseParts['scheme'], $baseParts['host'])) return false;
+            if (!isset($baseParts['scheme'], $baseParts['host']))
+                return false;
             $basePath = $baseParts['path'] ?? '/';
             $basePath = preg_replace('#/[^/]*$#', '/', $basePath);
             $path = ($rel[0] === '/') ? $rel : ($basePath . $rel);
             $segments = explode('/', $path);
             $resolved = [];
             foreach ($segments as $segment) {
-                if ($segment === '..') array_pop($resolved);
-                elseif ($segment !== '.' && $segment !== '') $resolved[] = $segment;
+                if ($segment === '..')
+                    array_pop($resolved);
+                elseif ($segment !== '.' && $segment !== '')
+                    $resolved[] = $segment;
             }
             return $baseParts['scheme'] . '://' . $baseParts['host'] . '/' . implode('/', $resolved);
         };
@@ -424,10 +435,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             libxml_clear_errors();
             foreach ($dom->getElementsByTagName('a') as $a) {
                 $href = trim($a->getAttribute('href'));
-                if (!$href || str_starts_with($href, 'mailto:') || str_starts_with($href, 'javascript:') || str_starts_with($href, 'tel:')) continue;
-                if (str_contains(strtolower($a->getAttribute('rel')), 'nofollow')) continue;
+                if (!$href || str_starts_with($href, 'mailto:') || str_starts_with($href, 'javascript:') || str_starts_with($href, 'tel:'))
+                    continue;
+                if (str_contains(strtolower($a->getAttribute('rel')), 'nofollow'))
+                    continue;
                 $abs = $urlToAbsolute($base, $href);
-                if ($abs) $links[] = strtok($abs, '#');
+                if ($abs)
+                    $links[] = strtok($abs, '#');
             }
             return array_unique($links);
         };
@@ -468,11 +482,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         };
 
         $allowedByRobots = function (string $url, array $rules): bool {
-            if ($rules['disallowAll']) return false;
+            if ($rules['disallowAll'])
+                return false;
             $path = parse_url($url, PHP_URL_PATH) ?: '/';
             foreach ($rules['disallow'] as $pattern) {
                 $regex = '#^' . str_replace('\*', '.*', preg_quote($pattern, '#')) . '#i';
-                if (preg_match($regex, $path)) return false;
+                if (preg_match($regex, $path))
+                    return false;
             }
             return true;
         };
@@ -494,7 +510,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $url = array_shift($queue);
                 $urlNorm = $normalize($url);
 
-                if (!$urlNorm || isset($visited[$urlNorm])) continue;
+                if (!$urlNorm || isset($visited[$urlNorm]))
+                    continue;
                 if (!$allowedByRobots($urlNorm, $robots)) {
                     $skippedReasons['robots']++;
                     continue;
@@ -536,13 +553,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 $links = $extractLinks($html, $url);
                 foreach ($links as $link) {
-                    if (count($visited) + count($queue) >= $maxUrls) break;
+                    if (count($visited) + count($queue) >= $maxUrls)
+                        break;
 
                     $linkNormalized = preg_replace('/^(https?:\/\/)www\./', '$1', strtolower($link));
-                    if (strpos($linkNormalized, $baseNormalized) !== 0) continue;
+                    if (strpos($linkNormalized, $baseNormalized) !== 0)
+                        continue;
 
                     $linkNorm = $normalize($link);
-                    if ($linkNorm && !isset($visited[$linkNorm])) $queue[] = $link;
+                    if ($linkNorm && !isset($visited[$linkNorm]))
+                        $queue[] = $link;
                 }
             }
 
@@ -2157,14 +2177,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <!-- Base URL Section -->
             <div>
                 <p class="section-title">Base URL</p>
-                <input
-                    type="text"
-                    class="input-field"
-                    name="base_url"
-                    id="base_url"
-                    placeholder="Enter URL"
-                    value="<?php echo htmlspecialchars($_POST['base_url'] ?? ''); ?>"
-                    required>
+                <input type="text" class="input-field" name="base_url" id="base_url" placeholder="Enter URL"
+                    value="<?php echo htmlspecialchars($_POST['base_url'] ?? ''); ?>" required>
             </div>
 
             <!-- Include/Exclude Paths Section -->
@@ -2172,21 +2186,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <!-- Include Paths -->
                 <div class="column">
                     <p class="section-title">Include Paths (Optional)</p>
-                    <input
-                        type="text"
-                        class="input-field-small"
-                        name="include_paths"
-                        id="include_paths"
-                        placeholder="Enter Path"
-                        value="<?php echo htmlspecialchars($_POST['include_paths'] ?? ''); ?>">
+                    <input type="text" class="input-field-small" name="include_paths" id="include_paths"
+                        placeholder="Enter Path" value="<?php echo htmlspecialchars($_POST['include_paths'] ?? ''); ?>">
                     <div class="help-text">
                         Only URLs containing these patterns will be included in the sitemap.<br>
                         Enter comma-separated patterns (they match anywhere in the URL path).
                     </div>
                     <div class="examples">
                         <div class="">Examples:</div>
-                        <div class="example-item">• copilot - Includes /copilot, /features/copilot, /github-copilot/pro</div>
-                        <div class="example-item">• blog, products - Includes any URL containing "blog" or "products"</div>
+                        <div class="example-item">• copilot - Includes /copilot, /features/copilot, /github-copilot/pro
+                        </div>
+                        <div class="example-item">• blog, products - Includes any URL containing "blog" or "products"
+                        </div>
                         <div class="example-item">• Leave empty to include all URLs (except those excluded below)</div>
                     </div>
                 </div>
@@ -2194,13 +2205,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <!-- Exclude Paths -->
                 <div class="column">
                     <p class="section-title">Exclude Paths (Optional)</p>
-                    <input
-                        type="text"
-                        class="input-field-small"
-                        name="exclude_paths"
-                        id="exclude_paths"
-                        placeholder="Enter Path"
-                        value="<?php echo htmlspecialchars($_POST['exclude_paths'] ?? ''); ?>">
+                    <input type="text" class="input-field-small" name="exclude_paths" id="exclude_paths"
+                        placeholder="Enter Path" value="<?php echo htmlspecialchars($_POST['exclude_paths'] ?? ''); ?>">
                     <div class="help-text">
                         URLs containing these patterns will be excluded from the sitemap.<br>
                         Enter comma-separated patterns (they match anywhere in the URL path).
@@ -2251,7 +2257,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
                 <div class="stats-box">
                     <div class="stats-first">URLs Sitemap: <?php echo $report['count']; ?></div>
-                    <div class="stats-item">Total Pages Crawled: <?php echo $report['crawled']; ?> ( <?php echo $report['excluded']; ?> Excluded )</div>
+                    <div class="stats-item">Total Pages Crawled: <?php echo $report['crawled']; ?> (
+                        <?php echo $report['excluded']; ?> Excluded )</div>
                 </div>
                 <div>
                     <p class="section-title">XML Preview:</p>
@@ -2279,8 +2286,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 <!-- Download Buttons -->
                 <div class="download-section">
-                    <a href="?action=download&file=<?php echo urlencode($report['downloads']['XML Sitemap']); ?>" class="btn-download">Download XML Sitemap</a>
-                    <a href="?action=download&file=<?php echo urlencode($report['downloads']['HTML Tree']); ?>" class="btn-download">Download HTML Tree View</a>
+                    <a href="?action=download&file=<?php echo urlencode($report['downloads']['XML Sitemap']); ?>"
+                        class="btn-download">Download XML Sitemap</a>
+                    <a href="?action=download&file=<?php echo urlencode($report['downloads']['HTML Tree']); ?>"
+                        class="btn-download">Download HTML Tree View</a>
                     <button type="button" class="xmlgen-btn reset" id="resetBtn-bottom" title="Reset">
                         <svg width="20" height="20" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"
                             stroke-linejoin="round" viewBox="0 0 24 24">
@@ -2352,7 +2361,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="step">
             <span class="step-title">Step 5</span>
             <p class="step-name">Submit to Search Engines</p>
-            <p class="step-description">Submit the generated sitemap to Google Search Console or other webmaster tools for indexing.</p>
+            <p class="step-description">Submit the generated sitemap to Google Search Console or other webmaster tools
+                for indexing.</p>
         </div>
     </div>
 </div>
@@ -2379,18 +2389,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="ecommmerce_content">
 
                         <p>
-                            Generate a clean and SEO-friendly sitemap for your website instantly with our free Sitemap Generator. Whether you're a website owner, SEO professional, or Marketer, this tool helps search engines discover your pages faster and index your website more efficiently. Simply enter your website's homepage URL, and our tool will crawl the site to automatically detect links and generate a well-structured XML sitemap. Designed for accuracy and ease, this sitemap generator ensures every important page is included to enhance your website’s search visibility and crawling efficiency.
+                            Generate a clean and SEO-friendly sitemap for your website instantly with our free Sitemap
+                            Generator. Whether you're a website owner, SEO professional, or Marketer, this tool helps
+                            search engines discover your pages faster and index your website more efficiently. Simply
+                            enter your website's homepage URL, and our tool will crawl the site to automatically detect
+                            links and generate a well-structured XML sitemap. Designed for accuracy and ease, this
+                            sitemap generator ensures every important page is included to enhance your website’s search
+                            visibility and crawling efficiency.
 
                         </p>
                     </div>
                 </div>
                 <div class="col-md-6 col-sm-6 secondblock">
                     <div class="ecommerce_img">
-                        <img
-                            class="lazy"
-                            src="media/background-img/XmlSItemap3.webp"
-                            width="350"
-                            height="250"
+                        <img class="lazy" src="media/background-img/XmlSItemap3.webp" width="350" height="250"
                             alt="Attract New Customers" />
                     </div>
                 </div>
@@ -2398,11 +2410,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="row cloud-row-two">
                 <div class="col-md-6 col-sm-6 secondblock">
                     <div class="ecommerce_img">
-                        <img
-                            class="lazy"
-                            src="media/background-img/XmlSItemap4.webp"
-                            width="350"
-                            height="250"
+                        <img class="lazy" src="media/background-img/XmlSItemap4.webp" width="350" height="250"
                             alt="Increased Customer Satisfaction" />
                     </div>
                 </div>
@@ -2410,7 +2418,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="ecommmerce_content">
 
                         <p>
-                            More than just a basic link extractor, our sitemap creator ensures a proper sitemap format compatible with major search engines. It scans your website structure and builds a neatly organized XML file you can download and submit directly to Google Search Console or other SEO tools. Ideal for blogs, business websites, eCommerce stores, and landing pages, this free online sitemap generator saves time and improves your site’s technical SEO foundation. Enjoy a simple interface with quick results, helping you keep your site indexed and optimized without manual work.
+                            More than just a basic link extractor, our sitemap creator ensures a proper sitemap format
+                            compatible with major search engines. It scans your website structure and builds a neatly
+                            organized XML file you can download and submit directly to Google Search Console or other
+                            SEO tools. Ideal for blogs, business websites, eCommerce stores, and landing pages, this
+                            free online sitemap generator saves time and improves your site’s technical SEO foundation.
+                            Enjoy a simple interface with quick results, helping you keep your site indexed and
+                            optimized without manual work.
 
                         </p>
 
@@ -2432,7 +2446,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <button>Generate Now</button>
 </div>
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function () {
         const form = document.getElementById('sitemapForm');
         const generateBtn = document.getElementById('generateBtn');
         const resetBtn = document.getElementById('resetBtn');
@@ -2446,7 +2460,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         const previewHeader = document.getElementById('previewHeader');
 
         // Form submission handler
-        form.addEventListener('submit', function(e) {
+        form.addEventListener('submit', function (e) {
             generateBtn.classList.add('loading');
             generateBtn.disabled = true;
             resetBtn.disabled = true;
@@ -2458,7 +2472,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             // Disable inputs after 600ms
-            setTimeout(function() {
+            setTimeout(function () {
                 baseUrlInput.disabled = true;
                 includePathsInput.disabled = true;
                 excludePathsInput.disabled = true;
@@ -2466,7 +2480,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         });
 
         // Reset button handler
-        resetBtn.addEventListener('click', function() {
+        resetBtn.addEventListener('click', function () {
             if (!resetBtn.disabled) {
                 baseUrlInput.value = '';
                 includePathsInput.value = '';
@@ -2484,7 +2498,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
         });
-        resetBtnbtm.addEventListener('click', function() {
+        resetBtnbtm.addEventListener('click', function () {
             if (!resetBtn.disabled) {
                 baseUrlInput.value = '';
                 includePathsInput.value = '';
@@ -2505,22 +2519,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         });
         // Copy button handler
         if (copyBtn) {
-            copyBtn.addEventListener('click', function() {
+            copyBtn.addEventListener('click', function () {
                 const xmlContent = document.getElementById('xmlContent');
                 const textToCopy = xmlContent.textContent;
 
-                navigator.clipboard.writeText(textToCopy).then(function() {
+                navigator.clipboard.writeText(textToCopy).then(function () {
                     const copyText = copyBtn.querySelector('.copy-text');
                     const originalText = copyText.textContent;
 
                     copyBtn.classList.add('copied');
                     copyText.textContent = 'Copied!';
 
-                    setTimeout(function() {
+                    setTimeout(function () {
                         copyBtn.classList.remove('copied');
                         copyText.textContent = originalText;
                     }, 2000);
-                }).catch(function(err) {
+                }).catch(function (err) {
                     console.error('Failed to copy:', err);
                     alert('Failed to copy to clipboard');
                 });
@@ -2529,7 +2543,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Preview box scroll handler
         if (previewBox && previewHeader) {
-            previewBox.addEventListener('scroll', function() {
+            previewBox.addEventListener('scroll', function () {
                 if (previewBox.scrollTop > 0) {
                     previewHeader.classList.add('scrolled');
                 } else {
@@ -2566,9 +2580,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         scrollXmlgenContainerTo(580); // scrolls the container to 500px from top
     }
 
-    require(['jquery'], function($) {
-        $(document).ready(function() {
-            $('.fourthblock button').on('click', function() {
+    require(['jquery'], function ($) {
+        $(document).ready(function () {
+            $('.fourthblock button').on('click', function () {
                 const target = $('.background-remover-tool');
                 if (target.length) {
                     $('html, body').animate({
