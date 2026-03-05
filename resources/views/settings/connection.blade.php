@@ -150,15 +150,22 @@
                                     <h4 class="text-md font-bold text-white mb-3 flex items-center gap-2">
                                         <span
                                             class="bg-indigo-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs">2</span>
-                                        Configure your .env file
+                                        Add your Keys to the .env file
                                     </h4>
-                                    <p class="text-sm text-slate-400 mb-3">Add this DSN to your <code class="text-white">.env</code>
-                                        file. This instantly enables active tracking for Server Errors, Exceptions, and System Logs.
+                                    <p class="text-sm text-slate-400 mb-3">
+                                        Open your project's <code class="text-white">.env</code> file (in the root folder) and paste
+                                        your credentials.
                                     </p>
-                                    <div class="bg-slate-900 rounded-lg p-4 border border-slate-800 overflow-x-auto relative group">
-                                        <pre><code class="text-emerald-300 font-mono text-sm">AIHEALTH_DSN="http://{{ $store->public_key }}@{{ request()->getHost() . ':' . request()->getPort() }}/{{ $store->id }}"
-                                            AIHEALTH_SEND_EXCEPTIONS=true
-                                            AIHEALTH_SEND_LOGS=true</code></pre>
+                                    <div
+                                        class="mb-4 text-xs font-medium bg-slate-800/50 p-3 rounded-lg border border-slate-700 space-y-2">
+                                        <p><strong class="text-emerald-400">The DSN (Public API Key):</strong> Securely tracks
+                                            Backend Server Errors and System Logs.</p>
+                                        <p><strong class="text-purple-400">The Tracking Key (Private Key):</strong> Securely tracks
+                                            Frontend Web Performance (RUM) and CTA Clicks.</p>
+                                    </div>
+                                    <div
+                                        class="bg-slate-900 rounded-lg p-4 border border-slate-800 overflow-x-auto relative group shadow-[inset_0_2px_10px_rgba(0,0,0,0.3)]">
+                                        <pre><code class="text-emerald-300 font-mono text-[13px] leading-relaxed">AIHEALTH_DSN="http://{{ $store->public_key }}@{{ request()->getHost() . ':' . request()->getPort() }}/{{ $store->id }}"<br><span class="text-purple-300">AIHEALTH_PRIVATE_TRACKING_KEY="{{ $store->private_tracking_key ?? 'rum_generate_key' }}"</span><br>AIHEALTH_SEND_EXCEPTIONS=true<br>AIHEALTH_SEND_LOGS=true</code></pre>
                                     </div>
                                 </div>
 
@@ -174,7 +181,7 @@
                                     <div class="bg-slate-900 rounded-lg p-4 border border-slate-800 overflow-x-auto">
                                         <pre><code class="text-blue-300 font-mono text-sm">use Illuminate\Support\Facades\Schedule;
 
-                                            Schedule::command('aihealth:send-health')->everyFiveMinutes();</code></pre>
+                                                        Schedule::command('aihealth:send-health')->everyFiveMinutes();</code></pre>
                                     </div>
                                 </div>
 
