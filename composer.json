@@ -93,11 +93,6 @@
     "prefer-stable": true,
     "repositories": [
         {
-            "name": "aihealth-sdk",
-            "type": "path",
-            "url": "../aihealth-laravel-sdk"
-        },
-        {
             "type": "vcs",
             "url": "https://github.com/vyasvatsal/aihealth-laravel-sdk.git"
         }
