@@ -32,22 +32,31 @@
                     <!-- Project Selector Dropdown -->
                     <div
                         class="bg-[#1e293b] border border-white/5 rounded-lg p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                        <div>
-                            <label for="project_select" class="block text-sm font-medium text-slate-400">Select Project to
-                                Configure</label>
-                            <p class="text-xs text-slate-500 mt-1">Each project requires its own unique API and Tracking Keys.</p>
+                        <div class="flex items-center gap-4">
+                            <form action="{{ route('settings.connection') }}" method="GET" id="projectSelectorForm">
+                                <select name="store_id" onchange="document.getElementById('projectSelectorForm').submit()"
+                                    class="bg-slate-800 border-slate-700 text-white rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:w-64 p-2.5">
+                                    @foreach($stores as $s)
+                                        <option value="{{ $s->id }}" {{ $store->id == $s->id ? 'selected' : '' }}>
+                                            {{ $s->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </form>
+                            @if($store->last_seen_at && $store->last_seen_at->gt(now()->subMinutes(15)))
+                                <span
+                                    class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                    Live Status
+                                </span>
+                            @else
+                                <span
+                                    class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-500/10 border border-slate-500/20 text-slate-400 text-xs font-medium">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-slate-500"></span>
+                                    Waiting for Traffic...
+                                </span>
+                            @endif
                         </div>
-
-                        <form action="{{ route('settings.connection') }}" method="GET" class="w-full sm:w-auto">
-                            <select id="project_select" name="store_id" onchange="this.form.submit()"
-                                class="w-full sm:w-64 bg-slate-900 border border-slate-700 text-white text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2.5">
-                                @foreach($stores as $s)
-                                    <option value="{{ $s->id }}" {{ $store->id === $s->id ? 'selected' : '' }}>
-                                        {{ $s->name }} ({{ parse_url($s->url, PHP_URL_HOST) ?? $s->url }})
-                                    </option>
-                                @endforeach
-                            </select>
-                        </form>
                     </div>
 
                     <!-- Keys Section -->
@@ -165,27 +174,11 @@
                                     </div>
                                     <div
                                         class="bg-slate-900 rounded-lg p-4 border border-slate-800 overflow-x-auto relative group shadow-[inset_0_2px_10px_rgba(0,0,0,0.3)]">
-                                        <pre><code class="text-emerald-300 font-mono text-[13px] leading-relaxed">AIHEALTH_DSN="http://{{ $store->public_key }}@{{ request()->getHost() . ':' . request()->getPort() }}/{{ $store->id }}"<br><span class="text-purple-300">AIHEALTH_PRIVATE_TRACKING_KEY="{{ $store->private_tracking_key ?? 'rum_generate_key' }}"</span><br>AIHEALTH_SEND_EXCEPTIONS=true<br>AIHEALTH_SEND_LOGS=true</code></pre>
+                                        <pre><code class="text-emerald-300 font-mono text-[13px] leading-relaxed">AIHEALTH_DSN="{{ (request()->isSecure() ? 'https' : 'http') . '://' . $store->api_key . '@' . request()->getHost() . (request()->getPort() != 80 && request()->getPort() != 443 ? ':' . request()->getPort() : '') . '/' . $store->id }}"<br><span class="text-purple-300">AIHEALTH_PRIVATE_TRACKING_KEY="{{ $store->private_tracking_key ?? 'rum_generate_key' }}"</span></code></pre>
                                     </div>
                                 </div>
 
-                                <!-- Step 3 (Optional) -->
-                                <div>
-                                    <h4 class="text-md font-bold text-white mb-3 flex items-center gap-2">
-                                        <span
-                                            class="bg-slate-700 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs">#</span>
-                                        Monitor Server Health (Optional)
-                                    </h4>
-                                    <p class="text-sm text-slate-400 mb-3">To monitor CPU Load, Memory Limits, and DB Connectivity,
-                                        register the heartbeat command in your <code>routes/console.php</code> file.</p>
-                                    <div class="bg-slate-900 rounded-lg p-4 border border-slate-800 overflow-x-auto">
-                                        <pre><code class="text-blue-300 font-mono text-sm">use Illuminate\Support\Facades\Schedule;
-
-                                                        Schedule::command('aihealth:send-health')->everyFiveMinutes();</code></pre>
-                                    </div>
-                                </div>
-
-                                <!-- Step 4 -->
+                                <!-- Step 3 -->
                                 <div>
                                     <h4 class="text-md font-bold text-white mb-3 flex items-center gap-2">
                                         <span
@@ -200,10 +193,11 @@
                                         class="bg-slate-900 rounded-lg p-4 border border-slate-800 flex justify-between items-center group">
                                         <code class="text-purple-400 font-bold font-mono text-sm">&#64;aihealth</code>
                                     </div>
-                                    <p class="text-xs text-slate-500 mt-3 pt-3 border-t border-slate-700/50"><strong>Bonus:</strong>
-                                        To
-                                        explicitly track any button conversions, simply add the attribute <code
-                                            class="text-indigo-400">data-aihealth-cta="button_name"</code> to your HTML tags.</p>
+                                    <p class="text-xs text-slate-500 mt-3 pt-3 border-t border-slate-700/50">
+                                        <i class="fas fa-check-circle text-emerald-500 mr-2"></i>
+                                        <strong>Automatic Monitoring:</strong> Server health (CPU, Memory, DB) is now monitored
+                                        automatically.
+                                    </p>
                                 </div>
 
                                 <!-- Step 4 -->
@@ -218,6 +212,26 @@
                                     <div
                                         class="bg-slate-900 rounded-lg p-4 border border-slate-800 flex justify-between items-center group">
                                         <code class="text-emerald-400 font-mono text-sm">php artisan aihealth:sync-routes</code>
+                                    </div>
+                                </div>
+
+                                <!-- Step 5 -->
+                                <div class="relative">
+                                    <div
+                                        class="absolute -left-6 top-0 bottom-0 w-px bg-gradient-to-b from-indigo-500/50 to-transparent">
+                                    </div>
+                                    <h4 class="text-md font-bold text-white mb-3 flex items-center gap-2">
+                                        <span
+                                            class="bg-emerald-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs">
+                                            <i class="fas fa-rocket"></i>
+                                        </span>
+                                        Instant Verification
+                                    </h4>
+                                    <p class="text-sm text-slate-400 mb-3">Run our test suite to instantly verify connectivity and
+                                        sync your project name to this dashboard.</p>
+                                    <div
+                                        class="bg-slate-900 rounded-lg p-4 border border-slate-800 flex justify-between items-center group border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.05)]">
+                                        <code class="text-emerald-400 font-mono text-sm">php artisan aihealth:test</code>
                                     </div>
                                 </div>
                             </div>

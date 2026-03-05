@@ -94,8 +94,8 @@
     "repositories": [
         {
             "name": "aihealth-sdk",
-            "type": "vcs",
-            "url": "https://github.com/vyasvatsal/aihealth-laravel-sdk.git"
+            "type": "path",
+            "url": "../aihealth-laravel-sdk"
         },
         {
             "type": "vcs",

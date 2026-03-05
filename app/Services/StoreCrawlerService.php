@@ -33,6 +33,20 @@ class StoreCrawlerService
 
         $visited = [];
         $queue = [$baseUrl];
+
+        // Add synced routes from database to the initial queue 
+        $syncedRoutes = \App\Models\ProjectRoute::where('store_id', $store->id)
+            ->where('uri', 'not like', '%{ %') // Skip parameter routes for now
+            ->pluck('uri')
+            ->toArray();
+
+        foreach ($syncedRoutes as $uri) {
+            $fullUrl = rtrim($baseUrl, '/') . '/' . ltrim($uri, '/');
+            if (!in_array($fullUrl, $queue)) {
+                $queue[] = $fullUrl;
+            }
+        }
+
         $baseNormalized = preg_replace('/^(https?:\/\/)(www\.)?/', '$1', strtolower($baseUrl));
 
         while (!empty($queue) && count($visited) < $this->maxUrls) {
@@ -216,6 +230,9 @@ class StoreCrawlerService
         libxml_clear_errors();
 
         foreach ($dom->getElementsByTagName('a') as $a) {
+            if (!$a instanceof \DOMElement) {
+                continue;
+            }
             $href = trim($a->getAttribute('href'));
             // Skip non-HTTP links and fragments
             if (!$href || str_starts_with($href, 'mailto:') || str_starts_with($href, 'javascript:') || str_starts_with($href, 'tel:') || str_starts_with($href, '#')) {

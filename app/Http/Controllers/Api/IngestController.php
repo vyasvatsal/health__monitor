@@ -43,6 +43,16 @@ class IngestController extends Controller
             return response()->json(['error' => 'Invalid Monitor Key or Project ID'], 401);
         }
 
+        // Sync Project Metadata
+        $store->update(['last_seen_at' => now()]);
+
+        if ($request->has('app_name') && !empty($request->app_name)) {
+            // Only update name if it's the default "Project #ID" or if explicitly requested
+            if (str_starts_with($store->name, 'Project #') || $store->name === 'New Project') {
+                $store->update(['name' => $request->app_name]);
+            }
+        }
+
         // 2. Validate Events Array
         $events = $request->input('events');
 
