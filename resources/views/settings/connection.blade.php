@@ -161,8 +161,8 @@
                                                     Register Repository</span>
                                             </div>
                                             <div class="p-3">
-                                                <pre><code class="text-indigo-400 font-mono text-xs">composer config repositories.aihealth vcs https://github.com/vyasvatsal/aihealth-laravel-sdk.git</code></pre>
-                                            </div>
+                                                <pre><code class="text-indigo-400 font-mono text-xs">composer require aihealth/laravel-monitor</code></pre>
+                                            </div>ss
                                         </div>
 
                                         <!-- Sub-step B -->
