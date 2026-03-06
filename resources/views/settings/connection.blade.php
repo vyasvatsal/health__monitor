@@ -156,14 +156,14 @@
                                     <div class="space-y-4">
                                         <!-- Sub-step A -->
                                         <!-- <div class="bg-slate-900 rounded-lg p-1 border border-slate-800">
-                                                                                <div class="px-3 py-1.5 border-b border-slate-800 flex items-center justify-between">
-                                                                                    <span class="text-[10px] uppercase tracking-widest font-bold text-slate-500">A.
-                                                                                        Register Repository</span>
-                                                                                </div>
-                                                                                <div class="p-3">
-                                                                                    <pre><code class="text-indigo-400 font-mono text-xs">composer config repositories.aihealth vcs https://github.com/vyasvatsal/aihealth-laravel-sdk.git</code></pre>
-                                                                                </div>
-                                                                            </div> -->
+                                                                                            <div class="px-3 py-1.5 border-b border-slate-800 flex items-center justify-between">
+                                                                                                <span class="text-[10px] uppercase tracking-widest font-bold text-slate-500">A.
+                                                                                                    Register Repository</span>
+                                                                                            </div>
+                                                                                            <div class="p-3">
+                                                                                                <pre><code class="text-indigo-400 font-mono text-xs">composer config repositories.aihealth vcs https://github.com/vyasvatsal/aihealth-laravel-sdk.git</code></pre>
+                                                                                            </div>
+                                                                                        </div> -->
 
                                         <!-- Sub-step B -->
                                         <div class="bg-slate-900 rounded-lg p-1 border border-slate-800">
@@ -186,37 +186,63 @@
                                             class="bg-indigo-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs">2</span>
                                         Configure your Environment
                                     </h4>
-                                    <p class="text-sm text-slate-400 mb-3">
+                                    <p class="text-sm text-slate-400 mb-6">
                                         Open your project's <code class="text-white">.env</code> file and add the following keys.
-                                        These connect your application to the Health Monitor.
+                                        These connect your application to the Health Monitor securely.
                                     </p>
-                                    <div class="grid grid-cols-1 gap-4 mb-4">
-                                        <div class="bg-slate-800/50 p-4 rounded-lg border border-slate-700/50">
-                                            <div class="flex items-center gap-2 mb-2">
-                                                <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
-                                                <span class="text-xs font-bold text-slate-300 uppercase tracking-wider">Public
-                                                    Backend Key (DSN)</span>
+
+                                    <!-- Mini .env Editor Visual -->
+                                    <div class="bg-[#0f172a] rounded-xl border border-white/10 overflow-hidden mb-8 shadow-2xl">
+                                        <div class="flex items-center gap-1.5 px-4 py-3 bg-slate-900/80 border-b border-white/5">
+                                            <div class="flex gap-1.5 mr-4">
+                                                <div class="w-3 h-3 rounded-full bg-slate-700"></div>
+                                                <div class="w-3 h-3 rounded-full bg-slate-700"></div>
+                                                <div class="w-3 h-3 rounded-full bg-slate-700"></div>
                                             </div>
-                                            <p class="text-xs text-slate-400 leading-relaxed mb-3">Used by the server to send Error
-                                                exceptions, System Logs, and Performance metrics securely from the backend.</p>
-                                            <div class="bg-slate-900 rounded p-3 border border-slate-800">
-                                                <code
-                                                    class="text-emerald-300 font-mono text-xs break-all">AIHEALTH_DSN="{{ (request()->isSecure() ? 'https' : 'http') . '://' . $store->api_key . '@' . request()->getHost() . (request()->getPort() != 80 && request()->getPort() != 443 ? ':' . request()->getPort() : '') . '/' . $store->id }}"</code>
+                                            <span class="text-[11px] font-mono text-slate-500 uppercase tracking-widest">.env</span>
+                                        </div>
+                                        <div
+                                            class="p-6 font-mono text-sm leading-relaxed overflow-x-auto selection:bg-indigo-500/30">
+                                            <div class="flex gap-4">
+                                                <div class="shrink-0 text-slate-600 text-right select-none w-4">
+                                                    <div>1</div>
+                                                    <div>2</div>
+                                                    <div>3</div>
+                                                    <div>4</div>
+                                                </div>
+                                                <div class="whitespace-nowrap">
+                                                    <div class="group py-0.5">
+                                                        <span class="text-emerald-400">AIHEALTH_DSN</span><span
+                                                            class="text-slate-500">=</span><span
+                                                            class="text-indigo-300">"{{ (request()->isSecure() ? 'https' : 'http') . '://' . $store->api_key . '@' . request()->getHost() . (request()->getPort() != 80 && request()->getPort() != 443 ? ':' . request()->getPort() : '') . '/' . $store->id }}"</span>
+                                                    </div>
+                                                    <div class="group py-0.5">
+                                                        <span class="text-purple-400">AIHEALTH_PRIVATE_TRACKING_KEY</span><span
+                                                            class="text-slate-500">=</span><span
+                                                            class="text-indigo-300">"{{ $store->private_tracking_key ?? 'key_not_generated' }}"</span>
+                                                    </div>
+                                                    <div class="group py-0.5 opacity-50">
+                                                        <span class="text-slate-400">AIHEALTH_ENVIRONMENT</span><span
+                                                            class="text-slate-500">=</span><span
+                                                            class="text-indigo-300">"production"</span>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
+                                    </div>
 
-                                        <div class="bg-slate-800/50 p-4 rounded-lg border border-slate-700/50">
-                                            <div class="flex items-center gap-2 mb-2">
-                                                <span class="w-2 h-2 rounded-full bg-purple-400"></span>
-                                                <span class="text-xs font-bold text-slate-300 uppercase tracking-wider">Private
-                                                    Tracking Key (RUM)</span>
-                                            </div>
-                                            <p class="text-xs text-slate-400 leading-relaxed mb-3">Required for Frontend monitoring.
-                                                It encrypts the Real User Monitoring (RUM) data sent from your user's browsers.</p>
-                                            <div class="bg-slate-900 rounded p-3 border border-slate-800">
-                                                <code
-                                                    class="text-purple-300 font-mono text-xs">AIHEALTH_PRIVATE_TRACKING_KEY="{{ $store->private_tracking_key ?? 'key_not_generated' }}"</code>
-                                            </div>
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                                        <div class="bg-slate-800/30 p-4 rounded-xl border border-white/5">
+                                            <h5 class="text-[10px] font-bold text-emerald-400 uppercase tracking-widest mb-1.5">
+                                                Backend Security</h5>
+                                            <p class="text-[11px] text-slate-400 leading-relaxed italic">Encrypts server-side
+                                                exceptions, logs, and system metrics.</p>
+                                        </div>
+                                        <div class="bg-slate-800/30 p-4 rounded-xl border border-white/5">
+                                            <h5 class="text-[10px] font-bold text-purple-400 uppercase tracking-widest mb-1.5">
+                                                Frontend Security</h5>
+                                            <p class="text-[11px] text-slate-400 leading-relaxed italic">Required to encrypt RUM
+                                                data sent from user browsers.</p>
                                         </div>
                                     </div>
                                 </div>
@@ -326,17 +352,34 @@
                                 </div>
 
                                 <!-- Step 4 -->
-                                <div>
+                                <div class="relative">
                                     <h4 class="text-md font-bold text-white mb-3 flex items-center gap-2">
                                         <span
                                             class="bg-indigo-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs">4</span>
                                         Sync Routes for Web Crawler
                                     </h4>
-                                    <p class="text-sm text-slate-400 mb-3">To enable automatic page analysis and CTA discovery, you
-                                        must synchronize your application's routes to the dashboard.</p>
-                                    <div
-                                        class="bg-slate-900 rounded-lg p-4 border border-slate-800 flex justify-between items-center group">
-                                        <code class="text-emerald-400 font-mono text-sm">php artisan aihealth:sync-routes</code>
+                                    <p class="text-sm text-slate-400 mb-6">
+                                        To enable automatic page analysis and CTA discovery, you
+                                        must synchronize your application's routes to the dashboard.
+                                    </p>
+                                    
+                                    <!-- Terminal Visual -->
+                                    <div class="bg-slate-900 rounded-xl border border-white/5 overflow-hidden shadow-xl mb-6 group">
+                                        <div class="flex items-center justify-between px-4 py-2 bg-slate-800/50 border-b border-white/5">
+                                            <div class="flex gap-1.5">
+                                                <div class="w-2.5 h-2.5 rounded-full bg-red-500/20 border border-red-500/20"></div>
+                                                <div class="w-2.5 h-2.5 rounded-full bg-amber-500/20 border border-amber-500/20"></div>
+                                                <div class="w-2.5 h-2.5 rounded-full bg-emerald-500/20 border border-emerald-500/20"></div>
+                                            </div>
+                                            <span class="text-[9px] uppercase tracking-widest font-bold text-slate-500">Terminal</span>
+                                        </div>
+                                        <div class="p-4 flex items-center justify-between">
+                                            <code class="text-emerald-400 font-mono text-sm flex items-center gap-2">
+                                                <span class="text-slate-600 select-none">$</span>
+                                                php artisan aihealth:sync-routes
+                                            </code>
+                                            <i class="fas fa-terminal text-slate-700 group-hover:text-emerald-500/50 transition-colors"></i>
+                                        </div>
                                     </div>
                                 </div>
 
