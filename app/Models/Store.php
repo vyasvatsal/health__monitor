@@ -11,6 +11,21 @@ class Store extends Model
 
     protected $guarded = [];
 
+    protected $appends = ['is_online'];
+
+    public function getIsOnlineAttribute()
+    {
+        if (!$this->last_seen_at) {
+            return false;
+        }
+
+        return $this->last_seen_at->gt(now()->subMinutes(5));
+    }
+
+    protected $casts = [
+        'last_seen_at' => 'datetime',
+    ];
+
     protected static function boot()
     {
         parent::boot();

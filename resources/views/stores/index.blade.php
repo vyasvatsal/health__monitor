@@ -31,7 +31,7 @@
                         }
                     @endphp
 
-                    <div class="group relative bg-[#1e293b]/80 backdrop-blur-xl rounded-2xl border border-white/5 p-6 hover:border-emerald-500/30 transition-all duration-300 hover:shadow-2xl hover:shadow-emerald-900/20 overflow-hidden flex flex-col h-full">
+                    <div class="group relative bg-[#1e293b]/80 backdrop-blur-xl rounded-2xl border border-white/5 p-6 hover:border-emerald-500/30 transition-all duration-300 hover:shadow-2xl hover:shadow-emerald-900/20 overflow-hidden flex flex-col h-full {{ !$store->is_online ? 'opacity-75 grayscale-[0.3]' : '' }}">
                         <!-- Glass Gradient Overlay -->
                         <div class="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
 
@@ -46,25 +46,32 @@
                                 <div>
                                     <h3 class="text-lg font-bold text-white group-hover:text-emerald-400 transition-colors">{{ $store->name }}</h3>
                                     <div class="flex items-center gap-2 mt-0.5">
-                                        <div class="w-1.5 h-1.5 rounded-full bg-{{ $statusColor }}-500 animate-pulse"></div>
-                                        <span class="text-xs text-slate-400 font-mono">{{ $status == 'healthy' ? 'Operational' : 'Issues Detected' }}</span>
+                                        <div class="w-1.5 h-1.5 rounded-full {{ $store->is_online ? 'bg-emerald-500 animate-pulse' : 'bg-slate-600' }}"></div>
+                                        <span class="text-[10px] {{ $store->is_online ? 'text-emerald-400 font-bold' : 'text-slate-500' }} uppercase tracking-wider">
+                                            {{ $store->is_online ? 'Online' : 'Offline' }}
+                                        </span>
                                     </div>
                                 </div>
                             </div>
-                            <div class="flex flex-col items-end">
+                            <div class="flex flex-col items-end gap-1.5">
                                 <span class="px-2 py-1 bg-{{ $statusColor }}-500/10 text-{{ $statusColor }}-400 text-[10px] uppercase font-bold rounded border border-{{ $statusColor }}-500/20 tracking-wider">
                                     {{ $store->tier }}
                                 </span>
+                                @if($store->environment)
+                                    <span class="px-2 py-0.5 {{ strtolower($store->environment) === 'production' ? 'bg-indigo-500/20 text-indigo-400 border-indigo-500/20' : 'bg-amber-500/20 text-amber-400 border-amber-500/20' }} text-[9px] uppercase font-black rounded border italic tracking-widest">
+                                        {{ $store->environment }}
+                                    </span>
+                                @endif
                             </div>
                         </div>
 
                         <!-- Metrics Grid -->
                         <div class="relative grid grid-cols-2 gap-3 mb-6 mt-auto">
-                            <div class="bg-slate-900/50 rounded-lg p-3 border border-white/5 group-hover:bg-slate-900/70 transition-colors">
+                            <div class="bg-slate-900/50 rounded-lg p-3 border border-white/5 group-hover:bg-slate-800/50 transition-colors">
                                 <span class="block text-[10px] text-slate-500 uppercase tracking-wider mb-1">Monitors</span>
                                 <span class="text-xl font-mono text-white">{{ $store->health_checks_count }}</span>
                             </div>
-                            <div class="bg-slate-900/50 rounded-lg p-3 border border-white/5 group-hover:bg-slate-900/70 transition-colors">
+                            <div class="bg-slate-900/50 rounded-lg p-3 border border-white/5 group-hover:bg-slate-800/50 transition-colors">
                                 <span class="block text-[10px] text-slate-500 uppercase tracking-wider mb-1">Incidents</span>
                                 <span class="text-xl font-mono text-white">{{ $store->incidents_count }}</span>
                             </div>
@@ -72,12 +79,12 @@
 
                         <!-- Footer / Actions -->
                         <div class="relative flex items-center justify-between pt-4 border-t border-white/5">
-                            <span class="text-xs text-slate-500 truncate max-w-[150px]" title="{{ $store->domain }}">
-                                {{ $store->domain ?? 'No Domain' }}
+                            <span class="text-[10px] text-slate-500 truncate max-w-[150px] font-mono" title="{{ $store->domain }}">
+                                {{ $store->domain ?? 'no-domain.local' }}
                             </span>
-                            <a href="{{ route('stores.show', $store) }}" class="flex items-center gap-2 text-sm font-bold text-white bg-white/5 hover:bg-emerald-500 hover:text-white px-4 py-2 rounded-lg transition-all duration-300 group-hover:translate-x-1">
-                                Manage
-                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <a href="{{ route('stores.show', $store) }}" class="flex items-center gap-2 text-xs font-bold text-white bg-white/5 hover:bg-emerald-500 hover:text-white px-4 py-2 rounded-lg transition-all duration-300 group-hover:translate-x-1 border border-white/5">
+                                Open Dash
+                                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
                                 </svg>
                             </a>

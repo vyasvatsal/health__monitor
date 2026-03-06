@@ -44,14 +44,21 @@ class IngestController extends Controller
         }
 
         // Sync Project Metadata
-        $store->update(['last_seen_at' => now()]);
+        $updateData = ['last_seen_at' => now()];
+
+        // Capture environment from request if available
+        if ($request->has('env')) {
+            $updateData['environment'] = $request->env;
+        }
 
         if ($request->has('app_name') && !empty($request->app_name)) {
             // Only update name if it's the default "Project #ID" or if explicitly requested
             if (str_starts_with($store->name, 'Project #') || $store->name === 'New Project') {
-                $store->update(['name' => $request->app_name]);
+                $updateData['name'] = $request->app_name;
             }
         }
+
+        $store->update($updateData);
 
         // 2. Validate Events Array
         $events = $request->input('events');
