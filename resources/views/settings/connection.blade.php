@@ -156,14 +156,14 @@
                                     <div class="space-y-4">
                                         <!-- Sub-step A -->
                                         <!-- <div class="bg-slate-900 rounded-lg p-1 border border-slate-800">
-                                                                    <div class="px-3 py-1.5 border-b border-slate-800 flex items-center justify-between">
-                                                                        <span class="text-[10px] uppercase tracking-widest font-bold text-slate-500">A.
-                                                                            Register Repository</span>
-                                                                    </div>
-                                                                    <div class="p-3">
-                                                                        <pre><code class="text-indigo-400 font-mono text-xs">composer config repositories.aihealth vcs https://github.com/vyasvatsal/aihealth-laravel-sdk.git</code></pre>
-                                                                    </div>
-                                                                </div> -->
+                                                                                <div class="px-3 py-1.5 border-b border-slate-800 flex items-center justify-between">
+                                                                                    <span class="text-[10px] uppercase tracking-widest font-bold text-slate-500">A.
+                                                                                        Register Repository</span>
+                                                                                </div>
+                                                                                <div class="p-3">
+                                                                                    <pre><code class="text-indigo-400 font-mono text-xs">composer config repositories.aihealth vcs https://github.com/vyasvatsal/aihealth-laravel-sdk.git</code></pre>
+                                                                                </div>
+                                                                            </div> -->
 
                                         <!-- Sub-step B -->
                                         <div class="bg-slate-900 rounded-lg p-1 border border-slate-800">
@@ -228,51 +228,100 @@
                                             class="bg-indigo-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs">3</span>
                                         Enable Real User Monitoring (RUM)
                                     </h4>
-                                    <p class="text-sm text-slate-400 mb-4">Add the <code class="text-white">@aihealth</code>
-                                        directive to your main layout file (<code class="text-white">app.blade.php</code>) right
-                                        before the <code class="text-white">&lt;/head&gt;</code> tag.</p>
+                                    <p class="text-sm text-slate-400 mb-6">
+                                        Add the <code class="text-white">@aihealth</code> directive to your main layout file
+                                        (<code class="text-white">app.blade.php</code>) right before the closing
+                                        <code class="text-white">&lt;/head&gt;</code> tag.
+                                    </p>
 
-                                    <div
-                                        class="bg-slate-900 rounded-lg p-4 border border-slate-800 flex justify-between items-center mb-6">
-                                        <code class="text-purple-400 font-bold font-mono text-lg tracking-wider">@aihealth</code>
+                                    <!-- Mini Code Editor Visual -->
+                                    <div class="bg-[#0f172a] rounded-xl border border-white/10 overflow-hidden mb-8 shadow-2xl">
+                                        <div class="flex items-center gap-1.5 px-4 py-3 bg-slate-900/80 border-b border-white/5">
+                                            <div class="flex gap-1.5 mr-4">
+                                                <div class="w-3 h-3 rounded-full bg-slate-700"></div>
+                                                <div class="w-3 h-3 rounded-full bg-slate-700"></div>
+                                                <div class="w-3 h-3 rounded-full bg-slate-700"></div>
+                                            </div>
+                                            <span
+                                                class="text-[11px] font-mono text-slate-500 uppercase tracking-widest">resources/views/layouts/app.blade.php</span>
+                                        </div>
+                                        <div
+                                            class="p-6 font-mono text-sm leading-relaxed overflow-x-auto selection:bg-indigo-500/30">
+                                            <div class="flex gap-4">
+                                                <div class="shrink-0 text-slate-600 text-right select-none w-4">
+                                                    <div>1</div>
+                                                    <div>2</div>
+                                                    <div>3</div>
+                                                    <div>4</div>
+                                                    <div>5</div>
+                                                </div>
+                                                <div class="text-slate-300">
+                                                    <div>&lt;<span class="text-indigo-400">head</span>&gt;</div>
+                                                    <div class="pl-4 text-slate-500">... previous tags ...</div>
+                                                    <div class="pl-4 py-1.5 group flex items-center gap-2">
+                                                        <span class="text-purple-400 font-bold">@aihealth</span>
+                                                        <span
+                                                            class="text-[10px] bg-purple-500/20 text-purple-400 px-1.5 py-0.5 rounded border border-purple-500/20 animate-pulse">ADD
+                                                            THIS HERE</span>
+                                                    </div>
+                                                    <div>&lt;/<span class="text-indigo-400">head</span>&gt;</div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
 
-                                    <div class="bg-indigo-500/5 border border-indigo-500/20 rounded-xl p-5">
-                                        <h5 class="text-sm font-bold text-indigo-300 mb-3 flex items-center gap-2">
-                                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                            </svg>
-                                            How it works:
-                                        </h5>
-                                        <ul class="space-y-3">
-                                            <li class="flex gap-3">
-                                                <span class="text-indigo-400 mt-1"><i class="fas fa-bolt text-xs"></i></span>
-                                                <span class="text-xs text-slate-300"><strong class="text-white">Core Web
-                                                        Vitals:</strong> Automatically measures LCP, CLS, and FCP to track your
-                                                    site's perceived speed.</span>
-                                            </li>
-                                            <li class="flex gap-3">
-                                                <span class="text-indigo-400 mt-1"><i
-                                                        class="fas fa-mouse-pointer text-xs"></i></span>
-                                                <span class="text-xs text-slate-300"><strong class="text-white">CTA
-                                                        Tracking:</strong> Automatically captures clicks on buttons and links to
-                                                    show you user engagement patterns.</span>
-                                            </li>
-                                            <li class="flex gap-3">
-                                                <span class="text-indigo-400 mt-1"><i class="fas fa-shield-alt text-xs"></i></span>
-                                                <span class="text-xs text-slate-300"><strong class="text-white">Zero-Delay
-                                                        Script:</strong> Injects a tiny, async Javascript snippet that won't slow
-                                                    down your page load.</span>
-                                            </li>
-                                            <li class="flex gap-3">
-                                                <span class="text-indigo-400 mt-1"><i class="fas fa-code text-xs"></i></span>
-                                                <span class="text-xs text-slate-300"><strong class="text-white">Privacy
-                                                        First:</strong> Only activates if the <code
-                                                        class="text-slate-200">AIHEALTH_PRIVATE_TRACKING_KEY</code> is present in
-                                                    your environment.</span>
-                                            </li>
-                                        </ul>
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div
+                                            class="bg-indigo-500/5 border border-indigo-500/10 rounded-xl p-4 transition-all hover:bg-indigo-500/10 hover:border-indigo-500/30">
+                                            <div class="flex items-center gap-3 mb-2">
+                                                <div
+                                                    class="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center text-indigo-400">
+                                                    <i class="fas fa-bolt text-sm"></i>
+                                                </div>
+                                                <h5 class="text-sm font-bold text-white">Core Web Vitals</h5>
+                                            </div>
+                                            <p class="text-[11px] text-slate-400 leading-relaxed">Automatic measurement of LCP, CLS,
+                                                and FCP for speed tracking.</p>
+                                        </div>
+
+                                        <div
+                                            class="bg-indigo-500/5 border border-indigo-500/10 rounded-xl p-4 transition-all hover:bg-indigo-500/10 hover:border-indigo-500/30">
+                                            <div class="flex items-center gap-3 mb-2">
+                                                <div
+                                                    class="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center text-indigo-400">
+                                                    <i class="fas fa-mouse-pointer text-sm"></i>
+                                                </div>
+                                                <h5 class="text-sm font-bold text-white">CTA Tracking</h5>
+                                            </div>
+                                            <p class="text-[11px] text-slate-400 leading-relaxed">Captures engagement on buttons and
+                                                links to show user patterns.</p>
+                                        </div>
+
+                                        <div
+                                            class="bg-indigo-500/5 border border-indigo-500/10 rounded-xl p-4 transition-all hover:bg-indigo-500/10 hover:border-indigo-500/30">
+                                            <div class="flex items-center gap-3 mb-2">
+                                                <div
+                                                    class="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center text-indigo-400">
+                                                    <i class="fas fa-shield-alt text-sm"></i>
+                                                </div>
+                                                <h5 class="text-sm font-bold text-white">Zero-Delay Script</h5>
+                                            </div>
+                                            <p class="text-[11px] text-slate-400 leading-relaxed">Async Javascript that won't impact
+                                                your page load performance.</p>
+                                        </div>
+
+                                        <div
+                                            class="bg-indigo-500/5 border border-indigo-500/10 rounded-xl p-4 transition-all hover:bg-indigo-500/10 hover:border-indigo-500/30">
+                                            <div class="flex items-center gap-3 mb-2">
+                                                <div
+                                                    class="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center text-indigo-400">
+                                                    <i class="fas fa-eye-slash text-sm"></i>
+                                                </div>
+                                                <h5 class="text-sm font-bold text-white">Privacy First</h5>
+                                            </div>
+                                            <p class="text-[11px] text-slate-400 leading-relaxed">Only activates if the Private
+                                                Tracking Key is present in .env.</p>
+                                        </div>
                                     </div>
                                 </div>
 
