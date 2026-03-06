@@ -155,20 +155,20 @@
 
                                     <div class="space-y-4">
                                         <!-- Sub-step A -->
-                                        <div class="bg-slate-900 rounded-lg p-1 border border-slate-800">
-                                            <div class="px-3 py-1.5 border-b border-slate-800 flex items-center justify-between">
-                                                <span class="text-[10px] uppercase tracking-widest font-bold text-slate-500">A.
-                                                    Register Repository</span>
-                                            </div>
-                                            <div class="p-3">
-                                                <pre><code class="text-indigo-400 font-mono text-xs">composer config repositories.aihealth vcs https://github.com/vyasvatsal/aihealth-laravel-sdk.git</code></pre>
-                                            </div>
-                                        </div>
+                                        <!-- <div class="bg-slate-900 rounded-lg p-1 border border-slate-800">
+                                                                    <div class="px-3 py-1.5 border-b border-slate-800 flex items-center justify-between">
+                                                                        <span class="text-[10px] uppercase tracking-widest font-bold text-slate-500">A.
+                                                                            Register Repository</span>
+                                                                    </div>
+                                                                    <div class="p-3">
+                                                                        <pre><code class="text-indigo-400 font-mono text-xs">composer config repositories.aihealth vcs https://github.com/vyasvatsal/aihealth-laravel-sdk.git</code></pre>
+                                                                    </div>
+                                                                </div> -->
 
                                         <!-- Sub-step B -->
                                         <div class="bg-slate-900 rounded-lg p-1 border border-slate-800">
                                             <div class="px-3 py-1.5 border-b border-slate-800 flex items-center justify-between">
-                                                <span class="text-[10px] uppercase tracking-widest font-bold text-slate-500">B.
+                                                <span class="text-[10px] uppercase tracking-widest font-bold text-slate-500">
                                                     Require Package</span>
                                             </div>
                                             <div class="p-3">
