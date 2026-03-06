@@ -161,8 +161,8 @@
                                                     Register Repository</span>
                                             </div>
                                             <div class="p-3">
-                                                <pre><code class="text-indigo-400 font-mono text-xs">composer require aihealth/laravel-monitor</code></pre>
-                                            </div>ss
+                                                <pre><code class="text-indigo-400 font-mono text-xs">composer config repositories.aihealth vcs https://github.com/vyasvatsal/aihealth-laravel-sdk.git</code></pre>
+                                            </div>
                                         </div>
 
                                         <!-- Sub-step B -->
@@ -292,22 +292,30 @@
                                 </div>
 
                                 <!-- Step 5 -->
-                                <div class="relative">
+                                <div class="relative pt-4">
                                     <div
-                                        class="absolute -left-6 top-0 bottom-0 w-px bg-gradient-to-b from-indigo-500/50 to-transparent">
-                                    </div>
-                                    <h4 class="text-md font-bold text-white mb-3 flex items-center gap-2">
-                                        <span
-                                            class="bg-emerald-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs">
-                                            <i class="fas fa-rocket"></i>
-                                        </span>
-                                        Instant Verification
-                                    </h4>
-                                    <p class="text-sm text-slate-400 mb-3">Run our test suite to instantly verify connectivity and
-                                        sync your project name to this dashboard.</p>
-                                    <div
-                                        class="bg-slate-900 rounded-lg p-4 border border-slate-800 flex justify-between items-center group border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.05)]">
-                                        <code class="text-emerald-400 font-mono text-sm">php artisan aihealth:test</code>
+                                        class="bg-emerald-500/5 border border-emerald-500/20 rounded-2xl p-6 shadow-[0_0_20px_rgba(16,185,129,0.05)] transition-all hover:shadow-[0_0_30px_rgba(16,185,129,0.1)]">
+                                        <div class="flex items-center gap-4 mb-4">
+                                            <div
+                                                class="bg-emerald-500 text-white w-10 h-10 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                                                <i class="fas fa-rocket animate-bounce-slow"></i>
+                                            </div>
+                                            <div>
+                                                <h4 class="text-lg font-bold text-white">Instant Verification</h4>
+                                                <p class="text-sm text-slate-400">Final Step: Run this to confirm everything is
+                                                    connected.</p>
+                                            </div>
+                                        </div>
+                                        <div class="bg-slate-900 rounded-xl p-4 border border-slate-800 group relative">
+                                            <div class="flex items-center justify-between">
+                                                <code class="text-emerald-400 font-mono text-sm">php artisan aihealth:test</code>
+                                                <span
+                                                    class="text-[10px] text-slate-500 font-bold uppercase tracking-widest group-hover:text-emerald-500 transition-colors">Run
+                                                    in Terminal</span>
+                                            </div>
+                                        </div>
+                                        <p class="text-[11px] text-slate-500 mt-4 text-center italic">This will send a test error, a
+                                            test log, and sync your project name instantly.</p>
                                     </div>
                                 </div>
                             </div>
