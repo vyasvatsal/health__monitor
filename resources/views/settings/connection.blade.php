@@ -146,11 +146,36 @@
                                     <h4 class="text-md font-bold text-white mb-3 flex items-center gap-2">
                                         <span
                                             class="bg-indigo-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs">1</span>
-                                        Install the SDK via Composer
+                                        Install the SDK
                                     </h4>
-                                    <div class="bg-slate-900 rounded-lg p-4 border border-slate-800">
-                                        <code
-                                            class="text-emerald-400 font-mono text-sm">composer require aihealth/laravel-sdk</code>
+                                    <p class="text-sm text-slate-400 mb-3">
+                                        Because the SDK is currently in private development, you need to add our repository to your
+                                        <code class="text-white">composer.json</code> before installing.
+                                    </p>
+
+                                    <div class="space-y-4">
+                                        <!-- Sub-step A -->
+                                        <div class="bg-slate-900 rounded-lg p-1 border border-slate-800">
+                                            <div class="px-3 py-1.5 border-b border-slate-800 flex items-center justify-between">
+                                                <span class="text-[10px] uppercase tracking-widest font-bold text-slate-500">A.
+                                                    Register Repository</span>
+                                            </div>
+                                            <div class="p-3">
+                                                <pre><code class="text-indigo-400 font-mono text-xs">composer config repositories.aihealth vcs https://github.com/vyasvatsal/aihealth-laravel-sdk.git</code></pre>
+                                            </div>
+                                        </div>
+
+                                        <!-- Sub-step B -->
+                                        <div class="bg-slate-900 rounded-lg p-1 border border-slate-800">
+                                            <div class="px-3 py-1.5 border-b border-slate-800 flex items-center justify-between">
+                                                <span class="text-[10px] uppercase tracking-widest font-bold text-slate-500">B.
+                                                    Require Package</span>
+                                            </div>
+                                            <div class="p-3">
+                                                <code
+                                                    class="text-emerald-400 font-mono text-sm">composer require aihealth/laravel-monitor</code>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 
