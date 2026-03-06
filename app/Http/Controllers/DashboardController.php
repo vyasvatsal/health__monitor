@@ -5,8 +5,9 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\HealthCheck;
 use App\Models\CheckResult;
-use App\Models\Incident;
 use App\Models\Store;
+use App\Models\StoreAlert;
+use App\Models\ExecutiveSummary;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -79,13 +80,19 @@ class DashboardController extends Controller
             ->with(['latestResult'])
             ->get();
 
-        // 3. Recent Alerts
-        $recentAlerts = Incident::where('store_id', $store->id)
+        // 3. Recent Alerts (Module 9)
+        $recentAlerts = StoreAlert::where('store_id', $store->id)
             ->orderBy('created_at', 'desc')
             ->limit(5)
             ->get();
 
-        // 4. AI Health Score
+        // 4. AI Executive Summary (Module 9)
+        $executiveSummary = ExecutiveSummary::where('store_id', $store->id)
+            ->where('summary_date', '>=', now()->subDays(2)) // Show most recent within 2 days
+            ->orderBy('summary_date', 'desc')
+            ->first();
+
+        // 5. AI Health Score
         $healthService = new \App\Services\Scoring\HealthScoreCalculator($store);
         $healthScore = $healthService->getLatest();
 
@@ -120,24 +127,13 @@ class DashboardController extends Controller
         $monthlyRevenue = env('MONTHLY_REVENUE', 50000);
         $revenueLoss = $revenueService->calculate($avgLatency, $monthlyRevenue);
 
-        // 7. Slowest Route (Module 4 - Phase 2)
-        $slowestRoute = \Illuminate\Support\Facades\Cache::get('performance_slowest_route');
-
-        // 8. Security & Logs (Phase 4)
-        $securityScanner = new \App\Services\Security\SecurityScanner();
-        $securityResult = $securityScanner->scan();
-
-        // 9. Uptime & History (Phase 5)
-        // 30-Day Uptime Calculation
+        // 9. Uptime Analysis
         $totalChecks30d = \App\Models\CheckResult::where('created_at', '>=', now()->subDays(30))->count();
         $failedChecks30d = \App\Models\CheckResult::where('created_at', '>=', now()->subDays(30))
             ->where('status', '!=', 'ok')->count();
         $uptime30d = $totalChecks30d > 0 ? (1 - ($failedChecks30d / $totalChecks30d)) * 100 : 100;
 
-        // 7-Day History calculation removed as it conflicts with the hourly chart view logic
-        // The view expects $normalizedChart to contain hourly data from lines 98-108
-
-        // 10. Live Traffic (Active Users) - added for SaaS
+        // 10. Live Traffic (Active Users)
         $latestActiveUserCheck = CheckResult::whereHas('check', fn($q) => $q->where('store_id', $store->id))
             ->whereNotNull('payload->active_users')
             ->orderBy('created_at', 'desc')
@@ -181,14 +177,13 @@ class DashboardController extends Controller
             'recentAlerts' => $recentAlerts,
             'healthScore' => $healthScore,
             'chartData' => $normalizedChart,
-            'revenueLoss' => $revenueLoss,
-            'slowestRoute' => $slowestRoute,
-            'securityResult' => $securityResult,
-            'uptime30d' => round($uptime30d, 2),
-            'allStores' => $allStores,
             'currentStore' => $store,
-            'aiHealth' => $aiHealth, // Pass AI Health Status
-            'systemHealth' => $systemHealth, // Pass SDK System Health
+            'aiHealth' => $aiHealth,
+            'systemHealth' => $systemHealth,
+            'executiveSummary' => $executiveSummary,
+            'allStores' => $allStores,
+            'uptime30d' => round($uptime30d, 2),
+            'revenueLoss' => $revenueLoss,
         ]);
     }
 }
