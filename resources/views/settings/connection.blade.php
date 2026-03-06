@@ -159,22 +159,40 @@
                                     <h4 class="text-md font-bold text-white mb-3 flex items-center gap-2">
                                         <span
                                             class="bg-indigo-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs">2</span>
-                                        Add your Keys to the .env file
+                                        Configure your Environment
                                     </h4>
                                     <p class="text-sm text-slate-400 mb-3">
-                                        Open your project's <code class="text-white">.env</code> file (in the root folder) and paste
-                                        your credentials.
+                                        Open your project's <code class="text-white">.env</code> file and add the following keys.
+                                        These connect your application to the Health Monitor.
                                     </p>
-                                    <div
-                                        class="mb-4 text-xs font-medium bg-slate-800/50 p-3 rounded-lg border border-slate-700 space-y-2">
-                                        <p><strong class="text-emerald-400">The DSN (Public API Key):</strong> Securely tracks
-                                            Backend Server Errors and System Logs.</p>
-                                        <p><strong class="text-purple-400">The Tracking Key (Private Key):</strong> Securely tracks
-                                            Frontend Web Performance (RUM) and CTA Clicks.</p>
-                                    </div>
-                                    <div
-                                        class="bg-slate-900 rounded-lg p-4 border border-slate-800 overflow-x-auto relative group shadow-[inset_0_2px_10px_rgba(0,0,0,0.3)]">
-                                        <pre><code class="text-emerald-300 font-mono text-[13px] leading-relaxed">AIHEALTH_DSN="{{ (request()->isSecure() ? 'https' : 'http') . '://' . $store->api_key . '@' . request()->getHost() . (request()->getPort() != 80 && request()->getPort() != 443 ? ':' . request()->getPort() : '') . '/' . $store->id }}"<br><span class="text-purple-300">AIHEALTH_PRIVATE_TRACKING_KEY="{{ $store->private_tracking_key ?? 'rum_generate_key' }}"</span></code></pre>
+                                    <div class="grid grid-cols-1 gap-4 mb-4">
+                                        <div class="bg-slate-800/50 p-4 rounded-lg border border-slate-700/50">
+                                            <div class="flex items-center gap-2 mb-2">
+                                                <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                                                <span class="text-xs font-bold text-slate-300 uppercase tracking-wider">Public
+                                                    Backend Key (DSN)</span>
+                                            </div>
+                                            <p class="text-xs text-slate-400 leading-relaxed mb-3">Used by the server to send Error
+                                                exceptions, System Logs, and Performance metrics securely from the backend.</p>
+                                            <div class="bg-slate-900 rounded p-3 border border-slate-800">
+                                                <code
+                                                    class="text-emerald-300 font-mono text-xs break-all">AIHEALTH_DSN="{{ (request()->isSecure() ? 'https' : 'http') . '://' . $store->api_key . '@' . request()->getHost() . (request()->getPort() != 80 && request()->getPort() != 443 ? ':' . request()->getPort() : '') . '/' . $store->id }}"</code>
+                                            </div>
+                                        </div>
+
+                                        <div class="bg-slate-800/50 p-4 rounded-lg border border-slate-700/50">
+                                            <div class="flex items-center gap-2 mb-2">
+                                                <span class="w-2 h-2 rounded-full bg-purple-400"></span>
+                                                <span class="text-xs font-bold text-slate-300 uppercase tracking-wider">Private
+                                                    Tracking Key (RUM)</span>
+                                            </div>
+                                            <p class="text-xs text-slate-400 leading-relaxed mb-3">Required for Frontend monitoring.
+                                                It encrypts the Real User Monitoring (RUM) data sent from your user's browsers.</p>
+                                            <div class="bg-slate-900 rounded p-3 border border-slate-800">
+                                                <code
+                                                    class="text-purple-300 font-mono text-xs">AIHEALTH_PRIVATE_TRACKING_KEY="{{ $store->private_tracking_key ?? 'key_not_generated' }}"</code>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -183,21 +201,54 @@
                                     <h4 class="text-md font-bold text-white mb-3 flex items-center gap-2">
                                         <span
                                             class="bg-indigo-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs">3</span>
-                                        Inject the Web RUM Tracker
+                                        Enable Real User Monitoring (RUM)
                                     </h4>
-                                    <p class="text-sm text-slate-400 mb-3">To enable Frontend Tracking (Core Web Vitals, CTA Clicks,
-                                        User Flow), add our Blade directive right before the <code
-                                            class="text-white">&lt;/head&gt;</code> tag in your main layout file (<code
-                                            class="text-white">app.blade.php</code>).</p>
+                                    <p class="text-sm text-slate-400 mb-4">Add the <code class="text-white">@aihealth</code>
+                                        directive to your main layout file (<code class="text-white">app.blade.php</code>) right
+                                        before the <code class="text-white">&lt;/head&gt;</code> tag.</p>
+
                                     <div
-                                        class="bg-slate-900 rounded-lg p-4 border border-slate-800 flex justify-between items-center group">
-                                        <code class="text-purple-400 font-bold font-mono text-sm">&#64;aihealth</code>
+                                        class="bg-slate-900 rounded-lg p-4 border border-slate-800 flex justify-between items-center mb-6">
+                                        <code class="text-purple-400 font-bold font-mono text-lg tracking-wider">@aihealth</code>
                                     </div>
-                                    <p class="text-xs text-slate-500 mt-3 pt-3 border-t border-slate-700/50">
-                                        <i class="fas fa-check-circle text-emerald-500 mr-2"></i>
-                                        <strong>Automatic Monitoring:</strong> Server health (CPU, Memory, DB) is now monitored
-                                        automatically.
-                                    </p>
+
+                                    <div class="bg-indigo-500/5 border border-indigo-500/20 rounded-xl p-5">
+                                        <h5 class="text-sm font-bold text-indigo-300 mb-3 flex items-center gap-2">
+                                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                            How it works:
+                                        </h5>
+                                        <ul class="space-y-3">
+                                            <li class="flex gap-3">
+                                                <span class="text-indigo-400 mt-1"><i class="fas fa-bolt text-xs"></i></span>
+                                                <span class="text-xs text-slate-300"><strong class="text-white">Core Web
+                                                        Vitals:</strong> Automatically measures LCP, CLS, and FCP to track your
+                                                    site's perceived speed.</span>
+                                            </li>
+                                            <li class="flex gap-3">
+                                                <span class="text-indigo-400 mt-1"><i
+                                                        class="fas fa-mouse-pointer text-xs"></i></span>
+                                                <span class="text-xs text-slate-300"><strong class="text-white">CTA
+                                                        Tracking:</strong> Automatically captures clicks on buttons and links to
+                                                    show you user engagement patterns.</span>
+                                            </li>
+                                            <li class="flex gap-3">
+                                                <span class="text-indigo-400 mt-1"><i class="fas fa-shield-alt text-xs"></i></span>
+                                                <span class="text-xs text-slate-300"><strong class="text-white">Zero-Delay
+                                                        Script:</strong> Injects a tiny, async Javascript snippet that won't slow
+                                                    down your page load.</span>
+                                            </li>
+                                            <li class="flex gap-3">
+                                                <span class="text-indigo-400 mt-1"><i class="fas fa-code text-xs"></i></span>
+                                                <span class="text-xs text-slate-300"><strong class="text-white">Privacy
+                                                        First:</strong> Only activates if the <code
+                                                        class="text-slate-200">AIHEALTH_PRIVATE_TRACKING_KEY</code> is present in
+                                                    your environment.</span>
+                                            </li>
+                                        </ul>
+                                    </div>
                                 </div>
 
                                 <!-- Step 4 -->
