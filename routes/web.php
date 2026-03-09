@@ -116,6 +116,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Store Alerts
     Route::post('/alerts/{alert}/read', [App\Http\Controllers\AlertController::class, 'markAsRead'])->name('alerts.read');
+
+    // Database Explorer
+    Route::get('/projects/{store}/database', [App\Http\Controllers\DatabaseExplorerController::class, 'index'])->name('projects.database');
 });
 
 Route::middleware('auth')->group(function () {

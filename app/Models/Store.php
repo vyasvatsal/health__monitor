@@ -72,4 +72,9 @@ class Store extends Model
     {
         return $this->hasMany(ExecutiveSummary::class);
     }
+
+    public function databaseSchemas()
+    {
+        return $this->hasMany(StoreDatabaseSchema::class);
+    }
 }

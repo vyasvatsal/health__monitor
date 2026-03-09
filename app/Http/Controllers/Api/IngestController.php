@@ -78,8 +78,21 @@ class IngestController extends Controller
 
         // 3. Process each event in the batch
         foreach ($events as $eventData) {
-            // Determine the type: exception or log or transaction or health or alert
             $type = $eventData['type'] ?? 'log';
+
+            if ($type === 'db_schema') {
+                $schemaJson = $eventData['schema'] ?? [];
+                $versionHash = md5(json_encode($schemaJson));
+
+                $store->databaseSchemas()->create([
+                    'schema_json' => $schemaJson,
+                    'version_hash' => $versionHash,
+                    'occurred_at' => \Carbon\Carbon::parse($eventData['timestamp'] ?? now()),
+                ]);
+
+                $processedEvents[] = 'db_schema_' . Str::random(8);
+                continue;
+            }
 
             if ($type === 'alert') {
                 $alertService->trigger(

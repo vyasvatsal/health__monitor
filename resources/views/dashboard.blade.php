@@ -55,6 +55,14 @@
                         </svg>
                         Public Status
                     </a>
+                    <a href="{{ route('projects.database', $currentStore->id) }}"
+                        class="px-4 py-2 bg-[#1e293b] hover:bg-[#334155] text-white text-sm font-medium rounded-lg border border-slate-700 transition-all flex items-center gap-2">
+                        <svg class="w-4 h-4 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 7v10c0 1.105 2.239 2 5 2s5-.895 5-2V7M4 7c0 1.105 2.239 2 5 2s5-.895 5-2M4 7c0-1.105 2.239-2 5-2s5 .895 5 2m0 5c0 1.105-2.239 2-5 2s-5-.895-5-2" />
+                        </svg>
+                        DB Explorer
+                    </a>
                     <a href="{{ route('incidents.create') }}"
                         class="px-4 py-2 bg-[#1e293b] hover:bg-[#334155] text-white text-sm font-medium rounded-lg border border-slate-700 transition-all flex items-center gap-2">
                         <svg class="w-4 h-4 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -899,13 +907,13 @@
                     cpu_load: {{ is_array(optional($systemHealth)['cpu_load']) ? optional($systemHealth)['cpu_load'][0] : (optional($systemHealth)['cpu_load'] ?? 'null') }},
                     memory_usage_mb: {{ optional($systemHealth)['memory_usage_mb'] ?? 'null' }},
                     db_connected: {{ optional($systemHealth)['db_connected'] ? 'true' : 'false' }}
-                                        },
+                                            },
                 issues: [
                     @if(($revenueLoss['excess_ms'] ?? 0) > 0) 'High Latency ({{ $revenueLoss['excess_ms'] ?? 0 }}ms excess)', @endif
                     @if(($errorRate ?? 0) > 0.01) 'Elevated Error Rate', @endif
                     @if(isset($systemHealth) && !$systemHealth['db_connected']) 'Database Connection Failed', @endif
                     @if(isset($systemHealth) && is_array($systemHealth['cpu_load']) && $systemHealth['cpu_load'][0] > 70) 'High CPU Utilization', @endif
-                                        ],
+                                            ],
                 recent_alerts: @json($recentAlerts->pluck('title')->take(5))
             };
 
