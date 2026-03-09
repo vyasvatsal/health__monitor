@@ -182,6 +182,13 @@ class DashboardController extends Controller
             ->limit(10)
             ->get();
 
+        // 14. Module 12 - Historical Health Trends
+        $healthHistory = \App\Models\HealthScore::where('store_id', $store->id)
+            ->where('is_daily_snapshot', true)
+            ->orderBy('recorded_at', 'asc')
+            ->limit(30)
+            ->get(['recorded_at', 'score']);
+
         return view('dashboard', [
             'totalRequests' => number_format($totalRequests),
             'avgLatency' => $avgLatency,
@@ -202,6 +209,7 @@ class DashboardController extends Controller
             'systemHealth' => $systemHealth,
             'executiveSummary' => $executiveSummary,
             'priorityAlerts' => $priorityAlerts,
+            'healthHistory' => $healthHistory,
         ]);
     }
 }

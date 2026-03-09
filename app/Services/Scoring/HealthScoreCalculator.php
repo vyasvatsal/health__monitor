@@ -19,9 +19,9 @@ class HealthScoreCalculator
      * 
      * @return HealthScore
      */
-    public function calculate(): HealthScore
+    public function calculate(bool $isDaily = false): HealthScore
     {
-        // 1. Fetch Real Data
+        // ... (data fetching logic)
         $now = now();
         $twentyFourHoursAgo = $now->copy()->subHours(24);
 
@@ -56,9 +56,6 @@ class HealthScoreCalculator
         // --- CALCULATION LOGIC ---
 
         // 1. Performance Score (30%)
-        // Base 100.
-        // Penalty: -1 for every 50ms > 100ms
-        // Penalty: -10 for error rate > 1%
         $perfScore = 100;
         if ($avgLatency > 100) {
             $perfScore -= floor(($avgLatency - 100) / 50);
@@ -72,8 +69,6 @@ class HealthScoreCalculator
         $perfScore = max(0, min(100, $perfScore));
 
         // 2. UX Score (25%)
-        // Proxied by Performance (Speed) & Stability (Error Rate)
-        // High latency = Bad UX. High errors = Bad UX.
         $uxScore = 100;
         if ($avgLatency > 200)
             $uxScore -= 10;
@@ -84,19 +79,14 @@ class HealthScoreCalculator
         $uxScore = max(0, min(100, $uxScore));
 
         // 3. Conversion Score (30%)
-        // Directly tied to Revenue Loss. 
-        // If is_optimal, 100. Else, deduct based on loss percentage.
         $convScore = 100;
         if (!$revenueLoss['is_optimal']) {
-            // Loss percentage (e.g., 7%) * 2 = 14 point deduction
             $deduction = ($revenueLoss['loss_percentage'] ?? 0) * 2;
             $convScore -= $deduction;
         }
-        $convScore = max(50, min(100, $convScore)); // Floor at 50 to not be too harsh
+        $convScore = max(50, min(100, $convScore));
 
         // 4. Trust Score (15%)
-        // Base: Security Score
-        // Penalty: Active Incidents
         $trustScore = $securityScore;
         if ($activeIncidents > 0) {
             $trustScore -= ($activeIncidents * 10);
@@ -138,6 +128,7 @@ class HealthScoreCalculator
             'metric_performance' => $perfScore,
             'metric_incidents' => $activeIncidents,
             'recorded_at' => now(),
+            'is_daily_snapshot' => $isDaily,
         ]);
     }
 

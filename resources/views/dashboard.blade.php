@@ -585,6 +585,30 @@
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <!-- 30-Day Health Trend -->
+                <div class="lg:col-span-3 bg-[#1e293b] overflow-hidden shadow-sm rounded-lg border border-white/10 mb-6">
+                    <div class="p-4 border-b border-white/5 flex justify-between items-center">
+                        <div>
+                            <h3 class="text-base font-semibold text-white">30-Day Health Trend</h3>
+                            <p class="text-slate-400 text-xs mt-0.5">Historical health score performance</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button onclick="analyzeHealthTrend()"
+                                class="text-[10px] bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 px-2 py-1 rounded border border-indigo-500/20 transition-all flex items-center gap-1">
+                                <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                Why did this change?
+                            </button>
+                            <span class="text-[10px] text-slate-500 font-mono uppercase">Last 30 snapshots</span>
+                        </div>
+                    </div>
+                    <div class="p-4 h-64">
+                        <div id="healthTrendChart"></div>
+                    </div>
+                </div>
+
                 <!-- Live Traffic Chart -->
                 <div class="lg:col-span-2 bg-[#1e293b] overflow-hidden shadow-sm rounded-lg border border-white/10">
                     <div class="p-4 border-b border-white/5 flex justify-between items-center">
@@ -859,11 +883,117 @@
                 if (!window.myCharts) window.myCharts = [];
                 window.myCharts.push(chart);
             }
+
+            // --- Module 12: Health Trend Chart (ApexCharts) ---
+            const trendData = @json($healthHistory);
+            if (trendData && trendData.length > 0) {
+                const options = {
+                    series: [{
+                        name: 'Health Score',
+                        data: trendData.map(d => d.score)
+                    }],
+                    chart: {
+                        height: 250,
+                        type: 'area',
+                        toolbar: { show: false },
+                        zoom: { enabled: false },
+                        background: 'transparent',
+                        foreColor: '#94a3b8'
+                    },
+                    dataLabels: { enabled: false },
+                    stroke: {
+                        curve: 'smooth',
+                        width: 3,
+                        colors: ['#10b981']
+                    },
+                    fill: {
+                        type: 'gradient',
+                        gradient: {
+                            shadeIntensity: 1,
+                            opacityFrom: 0.45,
+                            opacityTo: 0.05,
+                            stops: [20, 100, 100, 100],
+                            colorStops: [
+                                { offset: 0, color: '#10b981', opacity: 0.4 },
+                                { offset: 100, color: '#10b981', opacity: 0 }
+                            ]
+                        }
+                    },
+                    xaxis: {
+                        categories: trendData.map(d => new Date(d.recorded_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })),
+                        axisBorder: { show: false },
+                        axisTicks: { show: false }
+                    },
+                    yaxis: {
+                        min: 0,
+                        max: 100,
+                        tickAmount: 5
+                    },
+                    grid: {
+                        borderColor: 'rgba(255, 255, 255, 0.05)',
+                        strokeDashArray: 4
+                    },
+                    theme: { mode: 'dark' },
+                    tooltip: {
+                        theme: 'dark',
+                        x: { format: 'dd MMM' }
+                    }
+                };
+
+                const healthChart = new ApexCharts(document.querySelector("#healthTrendChart"), options);
+                healthChart.render();
+            }
         })();
         // Helper to get CSRF token
         function getCsrfToken() {
             return document.querySelector('meta[name="csrf-token"]').getAttribute('content');
         }
+
+        window.analyzeHealthTrend = function () {
+            const modal = document.getElementById('aiModal');
+            const loading = document.getElementById('aiLoading');
+            const results = document.getElementById('aiResults');
+            const content = document.getElementById('aiContent');
+
+            modal.classList.remove('hidden');
+            loading.classList.remove('hidden');
+            results.classList.add('hidden');
+
+            fetch('{{ route('ai.analyze-trend') }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': getCsrfToken()
+                },
+                body: JSON.stringify({ store_id: '{{ $currentStore->id }}' })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    loading.classList.add('hidden');
+                    results.classList.remove('hidden');
+                    
+                    let formatted = data.analysis || 'No analysis available.';
+                    formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong class="text-white">$1</strong>');
+                    formatted = formatted.replace(/\n/g, '<br>');
+                    formatted = formatted.replace(/^- (.*)/gm, '<li class="ml-4 list-disc">$1</li>');
+
+                    content.innerHTML = `
+                        <div class="mb-4 flex items-center gap-2 text-indigo-400 font-bold">
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                            </svg>
+                            Historical Trend Analysis
+                        </div>
+                        ${formatted}
+                    `;
+                })
+                .catch(err => {
+                    loading.classList.add('hidden');
+                    results.classList.remove('hidden');
+                    content.innerHTML = '<span class="text-red-400">Error: ' + err.message + '</span>';
+                });
+        };
 
         window.markAlertAsRead = function (id) {
             fetch(`/alerts/${id}/read`, {
@@ -907,13 +1037,13 @@
                     cpu_load: {{ is_array(optional($systemHealth)['cpu_load']) ? optional($systemHealth)['cpu_load'][0] : (optional($systemHealth)['cpu_load'] ?? 'null') }},
                     memory_usage_mb: {{ optional($systemHealth)['memory_usage_mb'] ?? 'null' }},
                     db_connected: {{ optional($systemHealth)['db_connected'] ? 'true' : 'false' }}
-                                            },
+                                                    },
                 issues: [
                     @if(($revenueLoss['excess_ms'] ?? 0) > 0) 'High Latency ({{ $revenueLoss['excess_ms'] ?? 0 }}ms excess)', @endif
                     @if(($errorRate ?? 0) > 0.01) 'Elevated Error Rate', @endif
                     @if(isset($systemHealth) && !$systemHealth['db_connected']) 'Database Connection Failed', @endif
                     @if(isset($systemHealth) && is_array($systemHealth['cpu_load']) && $systemHealth['cpu_load'][0] > 70) 'High CPU Utilization', @endif
-                                            ],
+                                                    ],
                 recent_alerts: @json($recentAlerts->pluck('title')->take(5))
             };
 

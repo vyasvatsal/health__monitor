@@ -113,6 +113,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // AI Analysis (Dashboard)
     Route::post('/ai/analyze', [App\Http\Controllers\AI\AIHealthController::class, 'analyze'])->name('ai.analyze');
+    Route::post('/ai/analyze-trend', [App\Http\Controllers\AI\AIHealthController::class, 'analyzeTrend'])->name('ai.analyze-trend');
 
     // Store Alerts
     Route::post('/alerts/{alert}/read', [App\Http\Controllers\AlertController::class, 'markAsRead'])->name('alerts.read');

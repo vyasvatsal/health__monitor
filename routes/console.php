@@ -7,5 +7,7 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-// \Illuminate\Support\Facades\Schedule::command('monitor:daily-digest')->dailyAt('08:00');
-// \Illuminate\Support\Facades\Schedule::command('monitor:run-benchmarks')->hourly();
+use Illuminate\Support\Facades\Schedule;
+use App\Jobs\RecordDailyHealthScoreJob;
+
+Schedule::job(new RecordDailyHealthScoreJob)->dailyAt('23:59');

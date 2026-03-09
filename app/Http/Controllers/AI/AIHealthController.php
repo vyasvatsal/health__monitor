@@ -35,7 +35,7 @@ class AIHealthController extends Controller
         $storeContext .= "- UX: " . ($data['ux_score'] ?? 'N/A') . "%\n";
         $storeContext .= "- Trust: " . ($data['trust_score'] ?? 'N/A') . "%\n";
         $storeContext .= "- SEO: " . ($data['seo_score'] ?? 'N/A') . "%\n";
-        
+
         if (isset($data['server_health'])) {
             $sh = $data['server_health'];
             $storeContext .= "- Server CPU Load: " . ($sh['cpu_load'] ?? 'N/A') . "\n";
@@ -78,6 +78,56 @@ class AIHealthController extends Controller
             return response()->json([
                 'error' => 'AI Service Unavailable: ' . $e->getMessage()
             ], 500);
+        }
+    }
+
+    public function analyzeTrend(Request $request)
+    {
+        $request->validate([
+            'store_id' => 'required|exists:stores,id',
+        ]);
+
+        $storeId = $request->input('store_id');
+        $store = \App\Models\Store::find($storeId);
+
+        // Fetch last 2 daily snapshots
+        $snapshots = \App\Models\HealthScore::where('store_id', $storeId)
+            ->where('is_daily_snapshot', true)
+            ->orderBy('recorded_at', 'desc')
+            ->limit(2)
+            ->get();
+
+        if ($snapshots->count() < 2) {
+            return response()->json([
+                'status' => 'info',
+                'analysis' => 'Not enough historical data to analyze trends yet. Come back tomorrow!'
+            ]);
+        }
+
+        $current = $snapshots[0];
+        $previous = $snapshots[1];
+        $diff = $current->score - $previous->score;
+
+        $prompt = "Analyze the change in E-commerce Store Health Score for '{$store->name}':\n";
+        $prompt .= "- Previous Score: {$previous->score} ({$previous->recorded_at->format('M d')})\n";
+        $prompt .= "- Current Score: {$current->score} ({$current->recorded_at->format('M d')})\n";
+        $prompt .= "- Change: " . ($diff > 0 ? '+' : '') . "{$diff} points\n\n";
+        $prompt .= "Previous Metrics: " . json_encode($previous->metrics_json) . "\n";
+        $prompt .= "Current Metrics: " . json_encode($current->metrics_json) . "\n\n";
+        $prompt .= "Explain WHY the score changed and what the owner should do. Be concise.";
+
+        try {
+            $response = app('ai')->chat([
+                ['role' => 'system', 'content' => 'You are a Senior Site Reliability Engineer and Business Analyst.'],
+                ['role' => 'user', 'content' => $prompt],
+            ]);
+
+            return response()->json([
+                'status' => 'success',
+                'analysis' => $response['content']
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 }
