@@ -145,7 +145,6 @@ class DashboardController extends Controller
 
         $activeUsers = $latestActiveUserCheck ? ($latestActiveUserCheck->payload['active_users'] ?? 0) : 0;
 
-        // 11. AI Service Health Check (New)
         $aiHealth = \Illuminate\Support\Facades\Cache::remember('ai_service_health', 300, function () {
             try {
                 return app('ai')->driver()->checkHealth();
@@ -171,6 +170,18 @@ class DashboardController extends Controller
             ];
         }
 
+        // 13. Module 9 - AI Summary & Alerts
+        $executiveSummary = \App\Models\ExecutiveSummary::where('store_id', $store->id)
+            ->latest()
+            ->first();
+
+        $priorityAlerts = \App\Models\StoreAlert::where('store_id', $store->id)
+            ->orderBy('read_at', 'asc') // Unread first
+            ->orderBy('severity', 'asc') // Critical/Warning/Info order
+            ->orderBy('created_at', 'desc')
+            ->limit(10)
+            ->get();
+
         return view('dashboard', [
             'totalRequests' => number_format($totalRequests),
             'avgLatency' => $avgLatency,
@@ -187,8 +198,10 @@ class DashboardController extends Controller
             'uptime30d' => round($uptime30d, 2),
             'allStores' => $allStores,
             'currentStore' => $store,
-            'aiHealth' => $aiHealth, // Pass AI Health Status
-            'systemHealth' => $systemHealth, // Pass SDK System Health
+            'aiHealth' => $aiHealth,
+            'systemHealth' => $systemHealth,
+            'executiveSummary' => $executiveSummary,
+            'priorityAlerts' => $priorityAlerts,
         ]);
     }
 }

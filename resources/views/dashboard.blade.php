@@ -139,6 +139,51 @@
                 </div>
             </div>
 
+            @if($executiveSummary)
+                <!-- Morning Update Digest -->
+                <div class="mb-6 group relative">
+                    <div
+                        class="absolute -inset-0.5 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl blur opacity-10 group-hover:opacity-20 transition duration-1000 group-hover:duration-200">
+                    </div>
+                    <div
+                        class="relative bg-[#1e293b]/80 backdrop-blur-xl rounded-2xl border border-white/10 p-6 shadow-2xl overflow-hidden">
+                        <div class="absolute top-0 right-0 p-8 poly-glow-ai opacity-10"></div>
+                        <div class="flex flex-col md:flex-row gap-6 items-start relative z-10">
+                            <div class="flex-shrink-0">
+                                <div
+                                    class="w-14 h-14 rounded-xl bg-indigo-500/20 flex items-center justify-center text-indigo-400 border border-indigo-500/20">
+                                    <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                    </svg>
+                                </div>
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex items-center gap-3 mb-2">
+                                    <h2 class="text-xl font-bold text-white tracking-tight">AI Executive Summary</h2>
+                                    <span
+                                        class="px-2 py-0.5 bg-indigo-500/20 text-indigo-400 text-[10px] font-bold rounded-full border border-indigo-500/20 uppercase">Morning
+                                        Digest</span>
+                                </div>
+                                <div class="prose prose-invert prose-sm max-w-none text-slate-300 leading-relaxed">
+                                    {!! \Illuminate\Support\Str::markdown($executiveSummary->content) !!}
+                                </div>
+                                <div class="mt-4 flex items-center gap-4 text-[10px] text-slate-500 font-mono">
+                                    <span class="flex items-center gap-1">
+                                        <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor font-mono">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        PERIOD: {{ $executiveSummary->period_start->format('M d, H:i') }} -
+                                        {{ $executiveSummary->period_end->format('H:i') }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            @endif
+
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                 <!-- Health Score -->
                 <div
@@ -664,38 +709,67 @@
                 </div>
             </div>
 
-            <!-- Recent Alerts -->
+            <!-- Priority Alerts Hub -->
             <div class="mt-4 bg-[#1e293b] overflow-hidden shadow-sm rounded-lg border border-white/10">
-                <div class="p-4 border-b border-white/5">
-                    <h3 class="text-base font-semibold text-white">Recent Alerts</h3>
+                <div class="p-4 border-b border-white/5 flex justify-between items-center">
+                    <h3 class="text-base font-semibold text-white flex items-center gap-2">
+                        <svg class="w-5 h-5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                        </svg>
+                        Priority Alerts Hub
+                    </h3>
+                    <div class="flex items-center gap-2">
+                        <span class="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Severity Order</span>
+                    </div>
                 </div>
-                <div class="p-4 pt-1">
-                    @forelse($recentAlerts ?? [] as $alert)
-                        @if(is_object($alert))
-                            @php
-                                $bg = match ($alert->severity ?? 'info') {
-                                    'critical' => 'border-red-500/50 bg-red-500/10',
-                                    'warning' => 'border-amber-500/50 bg-amber-500/10',
-                                    default => 'border-blue-500/50 bg-blue-500/10',
-                                };
-                                $tagColor = match ($alert->severity ?? 'info') {
-                                    'critical' => 'text-red-400',
-                                    'warning' => 'text-amber-400',
-                                    default => 'text-blue-400',
-                                };
-                            @endphp
-                            <div class="mt-3 p-3 rounded-lg border {{ $bg }}">
-                                <div class="flex justify-between items-start mb-0.5">
+                <div class="p-4 pt-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    @forelse($priorityAlerts ?? [] as $alert)
+                        @php
+                            $severityInfo = match ($alert->severity) {
+                                'critical' => ['color' => 'red', 'icon' => 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z'],
+                                'warning' => ['color' => 'amber', 'icon' => 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z'],
+                                default => ['color' => 'blue', 'icon' => 'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'],
+                            };
+                            $isRead = !is_null($alert->read_at);
+                        @endphp
+                        <div
+                            class="group relative p-3 rounded-lg border transition-all duration-300 {{ $isRead ? 'bg-slate-800/50 border-white/5 opacity-60' : 'bg-' . $severityInfo['color'] . '-500/10 border-' . $severityInfo['color'] . '-500/20 hover:border-' . $severityInfo['color'] . '-500/40' }} flex flex-col gap-2">
+                            <div class="flex justify-between items-start">
+                                <div class="flex items-center gap-2">
+                                    <div
+                                        class="w-6 h-6 rounded bg-{{ $severityInfo['color'] }}-500/20 flex items-center justify-center text-{{ $severityInfo['color'] }}-400">
+                                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="{{ $severityInfo['icon'] }}" />
+                                        </svg>
+                                    </div>
                                     <span
-                                        class="text-[10px] font-bold uppercase {{ $tagColor }}">{{ $alert->severity ?? 'INFO' }}</span>
-                                    <span
-                                        class="text-[10px] text-slate-500">{{ optional($alert->created_at)->diffForHumans() ?? 'Just now' }}</span>
+                                        class="text-[10px] font-bold uppercase tracking-wider text-{{ $severityInfo['color'] }}-400">{{ $alert->severity }}</span>
                                 </div>
-                                <div class="text-xs text-slate-300">{{ $alert->title ?? 'Untitled Alert' }}</div>
+                                <span
+                                    class="text-[9px] text-slate-500 font-medium">{{ $alert->created_at->diffForHumans() }}</span>
                             </div>
-                        @endif
+                            <div>
+                                <h4 class="text-xs font-bold text-white truncate">{{ $alert->title }}</h4>
+                                <p class="text-[10px] text-slate-400 line-clamp-2 mt-1">{{ $alert->message }}</p>
+                            </div>
+                            @if(!$isRead)
+                                <button onclick="markAlertAsRead({{ $alert->id }})"
+                                    class="mt-auto pt-2 text-[9px] text-{{ $severityInfo['color'] }}-400/70 hover:text-{{ $severityInfo['color'] }}-400 font-bold uppercase tracking-tighter transition-colors text-right">
+                                    Mark as Dismissed
+                                </button>
+                            @endif
+                        </div>
                     @empty
-                        <div class="text-slate-500 text-center py-3 text-sm">No recent alerts.</div>
+                        <div class="col-span-full py-8 text-center">
+                            <svg class="mx-auto h-12 w-12 text-slate-700 mb-3" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <p class="text-slate-500 text-sm">No critical alerts currently active.</p>
+                        </div>
                     @endforelse
                 </div>
             </div>
@@ -783,6 +857,24 @@
             return document.querySelector('meta[name="csrf-token"]').getAttribute('content');
         }
 
+        window.markAlertAsRead = function (id) {
+            fetch(`/alerts/${id}/read`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': getCsrfToken()
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Refresh current view or hide the element
+                        location.reload();
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+        };
+
         window.analyzeStoreHealth = function () {
             const modal = document.getElementById('aiModal');
             const loading = document.getElementById('aiLoading');
@@ -807,13 +899,13 @@
                     cpu_load: {{ is_array(optional($systemHealth)['cpu_load']) ? optional($systemHealth)['cpu_load'][0] : (optional($systemHealth)['cpu_load'] ?? 'null') }},
                     memory_usage_mb: {{ optional($systemHealth)['memory_usage_mb'] ?? 'null' }},
                     db_connected: {{ optional($systemHealth)['db_connected'] ? 'true' : 'false' }}
-                                },
+                                        },
                 issues: [
                     @if(($revenueLoss['excess_ms'] ?? 0) > 0) 'High Latency ({{ $revenueLoss['excess_ms'] ?? 0 }}ms excess)', @endif
                     @if(($errorRate ?? 0) > 0.01) 'Elevated Error Rate', @endif
                     @if(isset($systemHealth) && !$systemHealth['db_connected']) 'Database Connection Failed', @endif
                     @if(isset($systemHealth) && is_array($systemHealth['cpu_load']) && $systemHealth['cpu_load'][0] > 70) 'High CPU Utilization', @endif
-                                ],
+                                        ],
                 recent_alerts: @json($recentAlerts->pluck('title')->take(5))
             };
 

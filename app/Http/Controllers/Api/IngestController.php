@@ -74,11 +74,24 @@ class IngestController extends Controller
         }
 
         $processedEvents = [];
+        $alertService = app(\App\Services\Alerts\AlertHubService::class);
 
         // 3. Process each event in the batch
         foreach ($events as $eventData) {
-            // Determine the type: exception or log or transaction or health
+            // Determine the type: exception or log or transaction or health or alert
             $type = $eventData['type'] ?? 'log';
+
+            if ($type === 'alert') {
+                $alertService->trigger(
+                    $store,
+                    $eventData['severity'] ?? 'info',
+                    $eventData['title'] ?? 'System Alert',
+                    $eventData['message'] ?? '',
+                    $eventData['context'] ?? []
+                );
+                $processedEvents[] = 'alert_' . Str::random(8);
+                continue;
+            }
 
             if ($type === 'health') {
                 $healthCheck = \App\Models\HealthCheck::firstOrCreate(

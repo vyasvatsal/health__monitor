@@ -62,4 +62,14 @@ class Store extends Model
     {
         return $this->hasMany(ErrorGroup::class);
     }
+
+    public function alerts()
+    {
+        return $this->hasMany(StoreAlert::class);
+    }
+
+    public function executiveSummaries()
+    {
+        return $this->hasMany(ExecutiveSummary::class);
+    }
 }
