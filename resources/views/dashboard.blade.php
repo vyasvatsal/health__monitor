@@ -139,32 +139,6 @@
                 </div>
             </div>
 
-            @if($executiveSummary)
-                <!-- AI Morning Update (Module 9) -->
-                <div
-                    class="mb-6 bg-gradient-to-r from-indigo-900/40 to-purple-900/40 border border-indigo-500/20 rounded-2xl overflow-hidden shadow-2xl backdrop-blur-md">
-                    <div class="p-6">
-                        <div class="flex items-center gap-3 mb-4">
-                            <div
-                                class="w-10 h-10 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400">
-                                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M13 10V3L4 14h7v7l9-11h-7z" />
-                                </svg>
-                            </div>
-                            <div>
-                                <h3 class="text-lg font-bold text-white">AI Executive Summary</h3>
-                                <p class="text-xs text-indigo-300">Daily update for
-                                    {{ \Carbon\Carbon::parse($executiveSummary->summary_date)->toFormattedDateString() }}</p>
-                            </div>
-                        </div>
-                        <div class="prose prose-invert prose-sm max-w-none text-slate-200 leading-relaxed font-medium">
-                            {!! nl2br(e($executiveSummary->content)) !!}
-                        </div>
-                    </div>
-                </div>
-            @endif
-
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                 <!-- Health Score -->
                 <div
@@ -323,7 +297,7 @@
                                 </div>
                                 <div>
                                     <h3 class="text-white font-bold">AI Service Status</h3>
-                                    <p class="text-slate-400 text-xs">AI Operations</p>
+                                    <p class="text-slate-400 text-xs">Groq LLM Engine</p>
                                 </div>
                             </div>
                             <div class="flex items-center gap-2">
@@ -398,7 +372,86 @@
                     </div>
                 </div>
 
-                <!-- Health Status (Security) -->
+                <!-- Slowest Route (New Phase 2) -->
+                <div
+                    class="bg-[#1e293b] overflow-hidden shadow-sm rounded-lg border border-white/10 hover:border-white/20 transition-all duration-300">
+                    <div class="p-5">
+                        <div class="flex items-center justify-between mb-4">
+                            <div>
+                                <h3 class="text-white font-bold flex items-center gap-2">
+                                    <svg class="w-5 h-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    Slowest Detected Route
+                                </h3>
+                                <p class="text-slate-400 text-xs mt-1">Slowest request in the last hour</p>
+                            </div>
+                        </div>
+
+                        @if($slowestRoute)
+                            <div class="flex items-end gap-2">
+                                <div class="text-3xl font-bold text-white tracking-tight">
+                                    {{ $slowestRoute['duration'] }}ms
+                                </div>
+                                <div class="text-sm text-slate-500 mb-1">latency</div>
+                            </div>
+                            <div class="mt-4 bg-slate-700/30 rounded p-3">
+                                <div class="flex flex-col gap-1">
+                                    <div class="flex items-center gap-2">
+                                        <span
+                                            class="px-1.5 py-0.5 rounded bg-slate-600 text-slate-300 text-[10px] font-bold uppercase">{{ $slowestRoute['method'] }}</span>
+                                        <span class="text-xs text-white truncate w-48"
+                                            title="{{ $slowestRoute['url'] }}">{{ parse_url($slowestRoute['url'], PHP_URL_PATH) }}</span>
+                                    </div>
+                                    <div class="text-[10px] text-slate-500 text-right">
+                                        {{ \Carbon\Carbon::parse($slowestRoute['timestamp'])->diffForHumans() }}
+                                    </div>
+                                </div>
+                            </div>
+                        @else
+                            <div class="text-slate-500 text-sm py-4">No slow queries detected.</div>
+                        @endif
+                    </div>
+                </div>
+
+                <!-- Test Alerts (Phase 3) -->
+                <div
+                    class="bg-[#1e293b] overflow-hidden shadow-sm rounded-lg border border-white/10 hover:border-white/20 transition-all duration-300">
+                    <div class="p-5">
+                        <div class="flex items-center justify-between mb-4">
+                            <div>
+                                <h3 class="text-white font-bold flex items-center gap-2">
+                                    <svg class="w-5 h-5 text-yellow-400" fill="none" viewBox="0 0 24 24"
+                                        stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                                    </svg>
+                                    Test Alerts
+                                </h3>
+                                <p class="text-slate-400 text-xs mt-1">Verify your notification channels</p>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 text-center">
+                            <p class="text-sm text-slate-300 mb-3">Trigger a simulated critical alert to check Slack/Email
+                                integration.</p>
+                            <form action="{{ route('settings.alerts.test') }}" method="POST">
+                                @csrf
+                                <button type="submit"
+                                    class="bg-yellow-600 hover:bg-yellow-500 text-white text-xs font-bold py-2 px-4 rounded transition-colors w-full flex justify-center items-center gap-2">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                    </svg>
+                                    Simulate Critical Alert
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Security Score (Phase 4) -->
                 <div
                     class="bg-[#1e293b] overflow-hidden shadow-sm rounded-lg border border-white/10 hover:border-white/20 transition-all duration-300">
                     <div class="p-5">
@@ -409,25 +462,41 @@
                                         stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                             d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                                </svg>
-                                    Security & Trust
+                                    </svg>
+                                    Security Status
                                 </h3>
+                                <p class="text-slate-400 text-xs mt-1">Automated vulnerability scan</p>
                             </div>
                         </div>
 
                         <div class="flex items-center justify-between">
                             <div class="text-3xl font-bold text-white tracking-tight">
-                                98<span class="text-sm text-slate-500">/100</span>
+                                {{ $securityResult['score'] }}<span class="text-sm text-slate-500">/100</span>
                             </div>
                             <span
-                                class="px-2 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                                Protected
+                                class="px-2 py-1 rounded-full text-xs font-bold bg-purple-500/20 text-purple-400 border border-purple-500/30">
+                                {{ $securityResult['status'] }}
                             </span>
                         </div>
+
+                        @if(!empty($securityResult['issues']))
+                            <div class="mt-3 space-y-1">
+                                @foreach($securityResult['issues'] as $issue)
+                                    <div class="text-[10px] text-red-400 flex items-center gap-1">
+                                        <span>•</span> {{ $issue }}
+                                    </div>
+                                @endforeach
+                            </div>
+                        @else
+                            <div class="mt-3 text-xs text-emerald-400 flex items-center gap-1">
+                                <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                </svg>
+                                No critical issues found.
+                            </div>
+                        @endif
                     </div>
                 </div>
-
-                <!-- One-Click Fixes (Module 2 stub) -->
                 <div
                     class="bg-[#1e293b] overflow-hidden shadow-sm rounded-lg border border-white/10 hover:border-white/20 transition-all duration-300">
                     <div class="p-5 flex flex-col h-full justify-between">
@@ -437,16 +506,24 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M13 10V3L4 14h7v7l9-11h-7z" />
                                 </svg>
-                                Optimization Fix
+                                Optimization Opportunity
                             </h3>
-                            <p class="text-slate-400 text-xs mt-1">Recover revenue with one-click</p>
+                            <p class="text-slate-400 text-xs mt-1">Recover lost revenue by optimizing assets</p>
                         </div>
-                        <div class="mt-4">
+                        <div class="mt-4 text-center">
+                            <p class="text-sm text-slate-300 mb-3">Optimize images and scripts to save
+                                <strong>{{ ($revenueLoss['excess_ms'] ?? 0) > 0 ? round(($revenueLoss['excess_ms'] ?? 0) * 0.4) : 0 }}ms</strong>
+                                load time.
+                            </p>
                             <form action="{{ route('optimization.run') }}" method="POST">
                                 @csrf
                                 <button type="submit"
                                     class="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold py-2 px-4 rounded transition-colors w-full flex justify-center items-center gap-2">
-                                    Run Autonomous Fix
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                    </svg>
+                                    Run Autonomous Optimizations
                                 </button>
                             </form>
                         </div>
@@ -607,37 +684,14 @@
                                     default => 'text-blue-400',
                                 };
                             @endphp
-                            <div class="mt-3 p-3 rounded-lg border {{ $bg }} flex items-center gap-3">
-                                <div class="p-2 rounded bg-white/5">
-                                    @if(($alert->severity ?? 'info') === 'critical')
-                                        <svg class="w-5 h-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                                        </svg>
-                                    @elseif(($alert->severity ?? 'info') === 'warning')
-                                        <svg class="w-5 h-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                        </svg>
-                                    @else
-                                        <svg class="w-5 h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                        </svg>
-                                    @endif
+                            <div class="mt-3 p-3 rounded-lg border {{ $bg }}">
+                                <div class="flex justify-between items-start mb-0.5">
+                                    <span
+                                        class="text-[10px] font-bold uppercase {{ $tagColor }}">{{ $alert->severity ?? 'INFO' }}</span>
+                                    <span
+                                        class="text-[10px] text-slate-500">{{ optional($alert->created_at)->diffForHumans() ?? 'Just now' }}</span>
                                 </div>
-                                <div class="flex-1">
-                                    <div class="flex justify-between items-start mb-0.5">
-                                        <span
-                                            class="text-[10px] font-bold uppercase {{ $tagColor }}">{{ $alert->severity ?? 'INFO' }}</span>
-                                        <span
-                                            class="text-[10px] text-slate-500">{{ optional($alert->created_at)->diffForHumans() ?? 'Just now' }}</span>
-                                    </div>
-                                    <div class="text-xs text-slate-300 font-semibold">{{ $alert->title ?? 'Untitled Alert' }}</div>
-                                    @if($alert->message)
-                                        <div class="text-[10px] text-slate-400 mt-0.5 line-clamp-1">{{ $alert->message }}</div>
-                                    @endif
-                                </div>
+                                <div class="text-xs text-slate-300">{{ $alert->title ?? 'Untitled Alert' }}</div>
                             </div>
                         @endif
                     @empty
@@ -753,13 +807,13 @@
                     cpu_load: {{ is_array(optional($systemHealth)['cpu_load']) ? optional($systemHealth)['cpu_load'][0] : (optional($systemHealth)['cpu_load'] ?? 'null') }},
                     memory_usage_mb: {{ optional($systemHealth)['memory_usage_mb'] ?? 'null' }},
                     db_connected: {{ optional($systemHealth)['db_connected'] ? 'true' : 'false' }}
-                                        },
+                                },
                 issues: [
                     @if(($revenueLoss['excess_ms'] ?? 0) > 0) 'High Latency ({{ $revenueLoss['excess_ms'] ?? 0 }}ms excess)', @endif
                     @if(($errorRate ?? 0) > 0.01) 'Elevated Error Rate', @endif
                     @if(isset($systemHealth) && !$systemHealth['db_connected']) 'Database Connection Failed', @endif
                     @if(isset($systemHealth) && is_array($systemHealth['cpu_load']) && $systemHealth['cpu_load'][0] > 70) 'High CPU Utilization', @endif
-                                        ],
+                                ],
                 recent_alerts: @json($recentAlerts->pluck('title')->take(5))
             };
 
