@@ -96,12 +96,8 @@
             "type": "path",
             "url": "packages/aihealth-laravel-sdk",
             "options": {
-                "symlink": true
+                "symlink": false
             }
-        },
-        {
-            "type": "vcs",
-            "url": "https://github.com/vyasvatsal/aihealth-laravel-sdk.git"
         }
     ]
 }

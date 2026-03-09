@@ -4,15 +4,15 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "307b11b53aa2f62fafaeea9ec9d83ab5",
+    "content-hash": "d97ffe7e24dfd7138cf54a407fe3c421",
     "packages": [
         {
             "name": "aihealth/laravel-monitor",
             "version": "dev-main",
             "dist": {
                 "type": "path",
-                "url": "../aihealth-laravel-sdk",
-                "reference": "4bd83255931ccd4dd4dddc8f631775af62fd2199"
+                "url": "packages/aihealth-laravel-sdk",
+                "reference": "14e7eac2a94bf237432b665db8a1054e33abe20d"
             },
             "require": {
                 "illuminate/http": "^9.0|^10.0|^11.0|^12.0",
@@ -40,7 +40,7 @@
             ],
             "description": "AI Store Health Monitor SDK for Laravel",
             "transport-options": {
-                "symlink": true,
+                "symlink": false,
                 "relative": true
             }
         },
