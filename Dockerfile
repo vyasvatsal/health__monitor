@@ -38,8 +38,9 @@ WORKDIR /var/www/html
 # Copy Nginx config
 COPY docker/nginx.conf /etc/nginx/sites-available/default
  
-# Copy Composer dependencies
+# Copy Composer dependencies and local packages
 COPY composer.json composer.lock ./
+COPY packages ./packages
 RUN composer install --no-dev --optimize-autoloader --no-scripts --no-progress
 
 # Copy Node dependencies

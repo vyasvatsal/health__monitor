@@ -94,7 +94,7 @@
     "repositories": [
         {
             "type": "path",
-            "url": "..\\aihealth-laravel-sdk",
+            "url": "packages/aihealth-laravel-sdk",
             "options": {
                 "symlink": true
             }

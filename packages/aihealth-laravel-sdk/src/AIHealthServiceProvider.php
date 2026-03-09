@@ -1,0 +1,73 @@
+<?php
+
+namespace AIHealth\Laravel;
+
+use Illuminate\Support\ServiceProvider;
+
+class AIHealthServiceProvider extends ServiceProvider
+{
+    public function register()
+    {
+        $this->mergeConfigFrom(__DIR__ . '/config/aihealth.php', 'aihealth');
+
+        $this->app->singleton(Client::class, function ($app) {
+            return new Client(config('aihealth'), $app);
+        });
+
+        $this->app->alias(Client::class, 'aihealth');
+    }
+
+    public function boot()
+    {
+        if ($this->app->runningInConsole()) {
+            if (function_exists('config_path')) {
+                $this->publishes([
+                    __DIR__ . '/config/aihealth.php' => config_path('aihealth.php'),
+                ], 'aihealth-config');
+            }
+
+            $this->commands([
+                \AIHealth\Laravel\Commands\SendHealthCommand::class,
+                \AIHealth\Laravel\Commands\SyncRoutesCommand::class,
+                \AIHealth\Laravel\Commands\SyncSchemaCommand::class,
+                \AIHealth\Laravel\Commands\TestCommand::class,
+            ]);
+        }
+
+        // Only register hooks if the connection is configured (DSN or API Key/Endpoint)
+        $hasConnection = !empty(config('aihealth.dsn')) || (!empty(config('aihealth.api_key')) && !empty(config('aihealth.endpoint')));
+
+        if ($hasConnection) {
+            if (config('aihealth.send_exceptions')) {
+                $this->app->make(ErrorHandler::class)->register();
+            }
+
+            if (config('aihealth.send_logs')) {
+                $this->app->make(LogHandler::class)->register();
+            }
+
+            if (config('aihealth.send_transactions', true)) {
+                $this->app->make(\AIHealth\Laravel\Trackers\TransactionTracker::class)->register();
+            }
+        }
+
+        // Register the Blade Directive for Real User Monitoring
+        \Illuminate\Support\Facades\Blade::directive('aihealth', function () {
+            $key = config('aihealth.private_tracking_key');
+            $endpoint = config('aihealth.rum_endpoint');
+
+            if (!$key || !$endpoint) {
+                return "<!-- AIHealth RUM Disabled: Missing Key or Endpoint -->";
+            }
+
+            return "<?php echo \AIHealth\Laravel\Trackers\RumTracker::renderScript('$key', '$endpoint'); ?>";
+        });
+        // Auto-register the heartbeat scheduler so the user doesn't have to manually do it! (Hardcore Mode)
+        if ($hasConnection) {
+            $this->app->booted(function () {
+                $schedule = $this->app->make(\Illuminate\Console\Scheduling\Schedule::class);
+                $schedule->command('aihealth:health')->everyFiveMinutes();
+            });
+        }
+    }
+}

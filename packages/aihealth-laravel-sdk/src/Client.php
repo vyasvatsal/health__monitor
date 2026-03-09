@@ -1,0 +1,229 @@
+<?php
+
+namespace AIHealth\Laravel;
+
+use Throwable;
+use Illuminate\Http\Request;
+use AIHealth\Laravel\Transport\HttpTransport;
+
+class Client
+{
+    protected HttpTransport $transport;
+    protected $app;
+
+    public function __construct(array $config, $app)
+    {
+        $this->app = $app;
+        $this->transport = new HttpTransport($config);
+
+        if ($this->app->bound('config')) {
+            $this->transport->setAppName($this->app->make('config')->get('app.name', 'Laravel'));
+        }
+    }
+
+    public function captureException(Throwable $e)
+    {
+        if ($this->shouldIgnore()) {
+            return;
+        }
+
+        $payload = [
+            'type' => 'exception',
+            'exception' => get_class($e),
+            'message' => $e->getMessage(),
+            'file' => $e->getFile(),
+            'line' => $e->getLine(),
+            'trace' => $e->getTraceAsString(),
+            'timestamp' => now()->toISOString(),
+        ];
+
+        $this->enrichAndSend($payload);
+    }
+
+    public function captureLog(string $level, string $message, array $context = [])
+    {
+        if ($this->shouldIgnore()) {
+            return;
+        }
+
+        // Don't send context if it has an exception object inside 
+        // (to avoid recursion/duplicates, as exceptions are caught separately by ErrorHandler)
+        if (isset($context['exception']) && $context['exception'] instanceof Throwable) {
+            return;
+        }
+
+        $payload = [
+            'type' => 'log',
+            'level' => $level,
+            'message' => (string) $message,
+            'context' => collect($context)->except(['exception'])->toArray(),
+            'timestamp' => now()->toISOString(),
+        ];
+
+        $this->enrichAndSend($payload);
+    }
+
+    public function captureTransaction(array $data)
+    {
+        if ($this->shouldIgnore()) {
+            return;
+        }
+
+        $payload = array_merge([
+            'type' => 'transaction',
+            'timestamp' => now()->toISOString(),
+        ], $data);
+
+        $this->enrichAndSend($payload);
+    }
+
+    public function captureHealth(array $data = [])
+    {
+        if ($this->shouldIgnore()) {
+            return;
+        }
+
+        $memoryUsage = memory_get_usage(true) / 1024 / 1024;
+        $cpuLoad = function_exists('sys_getloadavg') ? sys_getloadavg() : [0, 0, 0];
+
+        $dbConnected = false;
+        try {
+            if ($this->app->bound('db')) {
+                $this->app->make('db')->connection()->getPdo();
+                $dbConnected = true;
+            }
+        } catch (\Throwable $e) {
+            $dbConnected = false;
+        }
+
+        $payload = array_merge([
+            'type' => 'health',
+            'timestamp' => now()->toISOString(),
+            'memory_usage_mb' => round($memoryUsage, 2),
+            'cpu_load' => $cpuLoad[0] ?? 0,
+            'db_connected' => $dbConnected,
+        ], $data);
+
+        $this->enrichAndSend($payload);
+
+        // Force flush if it's called individually (e.g. from an artisan command)
+        if ($this->app->runningInConsole()) {
+            $this->transport->flush();
+        }
+    }
+
+    public function captureAlert(string $severity, string $title, string $message, array $context = [])
+    {
+        if ($this->shouldIgnore()) {
+            return;
+        }
+
+        $payload = [
+            'type' => 'alert',
+            'severity' => $severity,
+            'title' => $title,
+            'message' => $message,
+            'context' => $context,
+            'timestamp' => now()->toISOString(),
+        ];
+
+        $this->enrichAndSend($payload);
+    }
+
+    public function captureDatabaseSchema()
+    {
+        if ($this->shouldIgnore()) {
+            return;
+        }
+
+        if (!$this->app->bound('db')) {
+            return;
+        }
+
+        try {
+            $connection = $this->app->make('db')->connection();
+            $schemaManager = $connection->getSchemaBuilder();
+
+            // Get tables - filter for public schema if pgsql
+            $tables = $schemaManager->getTableListing();
+            $driver = $connection->getDriverName();
+
+            $schema = [];
+
+            foreach ($tables as $table) {
+                // For PostgreSQL, restrict to public schema to avoid auth/storage bloat
+                if ($driver === 'pgsql' && !str_starts_with($table, 'public.')) {
+                    continue;
+                }
+
+                // Skip migration table
+                if (str_contains($table, 'migrations'))
+                    continue;
+
+                $columns = $schemaManager->getColumnListing($table);
+                $columnData = [];
+                foreach ($columns as $column) {
+                    $columnData[] = [
+                        'name' => $column,
+                        'type' => $schemaManager->getColumnType($table, $column),
+                    ];
+                }
+
+                $schema[] = [
+                    'table' => $table,
+                    'columns' => $columnData,
+                ];
+            }
+
+            $payload = [
+                'type' => 'db_schema',
+                'schema' => $schema,
+                'timestamp' => now()->toISOString(),
+            ];
+
+            $this->enrichAndSend($payload);
+
+            if ($this->app->runningInConsole()) {
+                $this->transport->flush();
+            }
+        } catch (Throwable $e) {
+            $this->captureException($e);
+        }
+    }
+
+    protected function enrichAndSend(array $payload)
+    {
+        try {
+            /** @var Request $request */
+            if ($this->app->bound('request')) {
+                $request = $this->app->make('request');
+                $payload['url'] = $request->fullUrl();
+                $payload['method'] = $request->method();
+            }
+        } catch (Throwable $e) {
+            // Ignore if request isn't resolvable
+        }
+
+        $payload['env'] = $this->app->environment();
+
+        $this->transport->send($payload);
+    }
+
+    protected function shouldIgnore(): bool
+    {
+        try {
+            if ($this->app->bound('request')) {
+                $request = $this->app->make('request');
+                // Never capture errors originating from the ingest ingest endpoint itself
+                // to prevent infinite loops (reporting an error about reporting an error)
+                if ($request->is('api/ingest*') || $request->is('api/v1/projects/routes*')) {
+                    return true;
+                }
+            }
+        } catch (Throwable $e) {
+            // Ignore
+        }
+
+        return false;
+    }
+}
