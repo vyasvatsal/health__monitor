@@ -3,18 +3,7 @@
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/debug-deploy', function () {
-    return [
-        'base_path' => base_path(),
-        'resource_path' => resource_path(),
-        'resource_views_path' => resource_path('views'),
-        'resource_views_exists' => is_dir(resource_path('views')),
-        'storage_path' => storage_path(),
-        'storage_framework_views_exists' => is_dir(storage_path('framework/views')),
-        'views_files' => is_dir(resource_path('views')) ? scandir(resource_path('views')) : 'NOT_FOUND',
-        'env_vercel' => $_ENV['VERCEL'] ?? 'NOT_SET',
-    ];
-});
+
 
 Route::get('/', function () {
     return view('welcome');
@@ -29,42 +18,7 @@ Route::get('/dashboard', [DashboardController::class, 'index'])
     ->middleware(['auth', 'verified'])
     ->name('dashboard');
 
-Route::get('/test-sdk', function () {
-    \Illuminate\Support\Facades\Log::warning('This is a test warning triggered from the web route to test SDK logs');
-    throw new \Exception('This is a hard crash triggered from the web route to test the SDK Exception Handler');
-});
 
-Route::get('/test-health-ingest', function (\Illuminate\Http\Request $request) {
-    $store = \App\Models\Store::first();
-    if (!$store)
-        return ['error' => 'No store found'];
-
-    $payload = [
-        'events' => [
-            [
-                'type' => 'health',
-                'timestamp' => now()->toISOString(),
-                'memory_usage_mb' => 25.5,
-                'cpu_load' => 1.2,
-                'db_connected' => true,
-            ]
-        ]
-    ];
-
-    $req = \Illuminate\Http\Request::create('/api/ingest', 'POST', [], [], [], [
-        'HTTP_X-Monitor-Key' => $store->public_key ?? $store->api_key,
-        'HTTP_X-Project-Id' => $store->id,
-        'CONTENT_TYPE' => 'application/json',
-    ], json_encode($payload));
-
-    $response = app()->handle($req);
-    return [
-        'status' => $response->getStatusCode(),
-        'content' => json_decode($response->getContent()),
-        'health_checks' => \App\Models\HealthCheck::count(),
-        'check_results' => \App\Models\CheckResult::count(),
-    ];
-});
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('stores', App\Http\Controllers\StoreController::class);
@@ -118,8 +72,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Store Alerts
     Route::post('/alerts/{alert}/read', [App\Http\Controllers\AlertController::class, 'markAsRead'])->name('alerts.read');
 
-    // Database Explorer
-    Route::get('/projects/{store}/database', [App\Http\Controllers\DatabaseExplorerController::class, 'index'])->name('projects.database');
+
 });
 
 Route::middleware('auth')->group(function () {
